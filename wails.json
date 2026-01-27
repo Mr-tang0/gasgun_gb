@@ -9,5 +9,15 @@
   "author": {
     "name": "Mr_Tang",
     "email": "3159690335@qq.com"
-  }
+  },
+  "Info":{
+    "ProductName": "GasGun",
+		"ProductVersion": "1.0.0",
+		"CompanyName": "PIMS",
+		"FileDescription": "null",
+		"LegalCopyright": "null",
+		"Comments": "null"
+	},
+  "update_url": "https://github.com/Mr-Tang/gasgun_gb/releases/download/v1.0.0/gasgun_gb.exe"
 }
+
