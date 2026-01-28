@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"gasgun_gb/backend"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -13,13 +14,19 @@ var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
+
+	gasgun1 := backend.NewGasGun1Controller()
+	normalHopkinson := backend.NewNormalHopkinsonContoller()
+
 	app := NewApp()
+	app.gasgun1 = gasgun1
+	app.normalHopkinson = normalHopkinson
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "gasgun_gb",
-		Width:  1024,
-		Height: 768,
+		Title:  "力学加载实验室一站式操作平台",
+		Width:  1200,
+		Height: 900,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -27,6 +34,8 @@ func main() {
 		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,
+			gasgun1,
+			normalHopkinson,
 		},
 	})
 
