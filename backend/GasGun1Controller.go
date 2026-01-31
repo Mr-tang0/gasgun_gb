@@ -55,7 +55,7 @@ func (g *GasGun1Controller) GetConfig() map[string]interface{} {
 		"inletAddr":          "Q0.0",
 		"outletAddr":         "Q0.1",
 		"fireAddr":           "Q0.2",
-		"vacuumAddr":         "Q0.3", // 注意：你原代码中 Vacuum 和 Fire 似乎共用了 Q0.3，请检查
+		"vacuumAddr":         "Q0.3",
 		"tailVacuumAddr":     "Q0.4",
 		"tankPressureAddr":   "VD0",
 		"supplyPressureAddr": "VD4",
