@@ -13,7 +13,7 @@ import (
 
 type XinjieClient struct {
 	handler *modbus.TCPClientHandler // Changed from RTU to TCP
-	client  modbus.Client
+	Client  modbus.Client
 	address string
 	mu      sync.Mutex
 }
@@ -36,7 +36,7 @@ func (x *XinjieClient) OpenTCP(address string, slaveID byte) error {
 		return err
 	}
 
-	x.client = modbus.NewClient(x.handler)
+	x.Client = modbus.NewClient(x.handler)
 	x.address = address
 	return nil
 }
@@ -46,6 +46,10 @@ func (x *XinjieClient) Close() {
 	if x.handler != nil {
 		x.handler.Close()
 	}
+}
+
+func (x *XinjieClient) IsOpened() bool {
+	return x.Client != nil
 }
 
 func (x *XinjieClient) ConvertOctalToDecimal(octalAddr int) (uint16, error) {
@@ -130,25 +134,25 @@ func (x *XinjieClient) Read_M_Coils(address uint16, count uint16) []bool {
 
 // ReadRegisters 读取保持寄存器
 func (x *XinjieClient) ReadRegisters(address uint16, quantity uint16) ([]byte, error) {
-	if x.client == nil {
+	if x.Client == nil {
 		return nil, fmt.Errorf("客户端未初始化")
 	}
 	x.mu.Lock()
 	defer x.mu.Unlock() // 结束时解锁
 
-	return x.client.ReadHoldingRegisters(address, quantity)
+	return x.Client.ReadHoldingRegisters(address, quantity)
 }
 
 // 读线圈
 
 func (x *XinjieClient) ReadCoils(address uint16, count uint16) ([]bool, error) {
-	if x.client == nil {
+	if x.Client == nil {
 		return nil, fmt.Errorf("客户端未初始化")
 	}
 	x.mu.Lock()
 	defer x.mu.Unlock() // 结束时解锁
 
-	results, err := x.client.ReadCoils(address, count)
+	results, err := x.Client.ReadCoils(address, count)
 	if err != nil {
 		return nil, err
 	}
@@ -231,24 +235,24 @@ func (x *XinjieClient) PackAndWriteCoils(address uint16, status []bool) ([]byte,
 
 // WriteRegisters 通用写多个保持寄存器 (功能码 16)
 func (x *XinjieClient) WriteRegisters(address uint16, quantity uint16, value []byte) ([]byte, error) {
-	if x.client == nil {
+	if x.Client == nil {
 		return nil, fmt.Errorf("客户端未初始化")
 	}
 
 	x.mu.Lock()
 	defer x.mu.Unlock() // 结束时解锁
 
-	return x.client.WriteMultipleRegisters(address, quantity, value)
+	return x.Client.WriteMultipleRegisters(address, quantity, value)
 }
 
 // WriteCoils 通用写多个线圈 (功能码 15)
 func (x *XinjieClient) WriteCoils(address uint16, quantity uint16, value []byte) ([]byte, error) {
-	if x.client == nil {
+	if x.Client == nil {
 		return nil, fmt.Errorf("客户端未初始化")
 	}
 
 	x.mu.Lock()
 	defer x.mu.Unlock() // 结束时解锁
 
-	return x.client.WriteMultipleCoils(address, quantity, value)
+	return x.Client.WriteMultipleCoils(address, quantity, value)
 }

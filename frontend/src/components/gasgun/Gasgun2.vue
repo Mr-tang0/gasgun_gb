@@ -173,12 +173,107 @@
   </div>
 
   <div v-if="showSettings" class="modal-overlay">
-    <div class="modal-content">
-      <h3>系统配置</h3>
-      <div class="settings-grid">
-        <div class="setting-group">
-          <label>默认IP:</label>
-          <input v-model="config.ip" placeholder="192.168.2.1" />
+    <div class="modal-content config-modal">
+      <div class="modal-header">
+        <h3>系统配置</h3>
+      </div>
+      <div class="settings-scroll">
+        <div class="settings-section">
+          <h4 class="settings-section-title">网络配置</h4>
+          <div class="setting-group">
+            <label>默认IP:</label>
+            <input v-model="config.ip" placeholder="192.168.6.6" />
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h4 class="settings-section-title">阀门点位配置</h4>
+          <div class="settings-grid-2col">
+            <div class="setting-group">
+              <label>增压阀:</label>
+              <input v-model.number="config.switches.Pressurize" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>减压阀:</label>
+              <input v-model.number="config.switches.Decompress" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>泵管增压阀:</label>
+              <input v-model.number="config.switches.PumpTubePressurize" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>泵管减压阀:</label>
+              <input v-model.number="config.switches.PumpTubeDecompress" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>抽泵管真空阀:</label>
+              <input v-model.number="config.switches.PumpTubeVacuum" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>靶室真空阀:</label>
+              <input v-model.number="config.switches.TargetVacuum" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>尾真空保护阀:</label>
+              <input v-model.number="config.switches.TailVacuumProtect" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>泵管保护阀:</label>
+              <input v-model.number="config.switches.PumpTubeProtect" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>发射阀:</label>
+              <input v-model.number="config.switches.FireSwitch" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>系统减压阀:</label>
+              <input v-model.number="config.switches.SystemDecompress" type="number" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h4 class="settings-section-title">真空泵点位配置</h4>
+          <div class="settings-grid-2col">
+            <div class="setting-group">
+              <label>靶室真空泵:</label>
+              <input v-model.number="config.switches.TargetVacuumPump" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>尾真空泵:</label>
+              <input v-model.number="config.switches.TailVacuumPump" type="number" />
+            </div>
+          </div>
+        </div>
+        
+        <div class="settings-section">
+          <h4 class="settings-section-title">数据地址配置</h4>
+          <div class="settings-grid-2col">
+            <div class="setting-group">
+              <label>输入压力:</label>
+              <input v-model.number="config.dataAddresses.InputPressure" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>气瓶压力:</label>
+              <input v-model.number="config.dataAddresses.CylinderPressure" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>泵管压力:</label>
+              <input v-model.number="config.dataAddresses.PumpTubePressure" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>泵管压力(高精度):</label>
+              <input v-model.number="config.dataAddresses.PumpTubePressureHi" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>靶室真空度:</label>
+              <input v-model.number="config.dataAddresses.TargetVacuumDegree" type="number" />
+            </div>
+            <div class="setting-group">
+              <label>尾部真空度:</label>
+              <input v-model.number="config.dataAddresses.TailVacuumDegree" type="number" />
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal-actions">
@@ -224,8 +319,8 @@ const pumpTubePressureRunning = ref(false)
 const cylinderPressureRunning = ref(false)
 const isExternalTrigger = ref(false)
 
-const pumpTubeTargetPressure = ref(25.0)
-const cylinderTargetPressure = ref(12.0)
+const pumpTubeTargetPressure = ref(2.0)
+const cylinderTargetPressure = ref(1.0)
 
 // 指标数据
 const inputPressure = ref('00.00')
@@ -273,6 +368,28 @@ const logs = ref([
 
 const config = reactive({
   ip: '192.168.6.6',
+  switches: {
+    Pressurize: 1,
+    Decompress: 2,
+    PumpTubePressurize: 3,
+    PumpTubeDecompress: 4,
+    PumpTubeVacuum: 5,
+    TargetVacuum: 6,
+    TailVacuumProtect: 7,
+    PumpTubeProtect: 8,
+    FireSwitch: 9,
+    SystemDecompress: 10,
+    TargetVacuumPump: 11,
+    TailVacuumPump: 12,
+  },
+  dataAddresses: {
+    InputPressure: 0,
+    CylinderPressure: 2,
+    PumpTubePressure: 4,
+    PumpTubePressureHi: 6,
+    TargetVacuumDegree: 8,
+    TailVacuumDegree: 10,
+  }
 })
 
 const addLog = (msg) => {
@@ -427,10 +544,16 @@ const saveSettings = async () => {
 
 onMounted(async () => {
   const result = await GetConfig()
-  // if (result) {
-  //   config.ip = result.ip
-  //   deviceIp.value = result.ip
-  // }
+  if (result) {
+    config.ip = result.ip
+    deviceIp.value = result.ip
+    if (result.switches) {
+      config.switches = { ...result.switches }
+    }
+    if (result.dataAddresses) {
+      config.dataAddresses = { ...result.dataAddresses }
+    }
+  }
 
   EventsOn("update_gasgun2_metrics", (data) => {
     if (!data) return
@@ -502,6 +625,23 @@ onUnmounted(() => {
   border: 1px solid rgba(255,255,255,0.1);
 }
 
+.log-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 16px;
+}
+
+.log-panel .panel-label {
+  flex-shrink: 0;
+}
+
+.log-panel .info-log-box {
+  flex: 1;
+  min-height: 0;
+}
+
 .panel-label {
   font-size: 12px;
   color: #868e96;
@@ -560,7 +700,6 @@ onUnmounted(() => {
 .info-log-box {
   background: #14171e;
   border-radius: 6px;
-  height: 180px;
   padding: 8px;
   overflow: hidden;
 }
@@ -918,28 +1057,221 @@ onUnmounted(() => {
 .modal-overlay {
   position: fixed;
   top: 0; left: 0; width: 100%; height: 100%;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.6);
   display: flex; justify-content: center; align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
-  background: #f8f9fa; padding: 25px; border-radius: 12px;
-  width: 500px; color: #333;
+  background: linear-gradient(145deg, #ffffff, #f1f3f4);
+  padding: 0;
+  border-radius: 16px;
+  width: 500px;
+  color: #333;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.config-modal {
+  width: 650px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  padding: 20px 24px;
+  color: white;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-header h3::before {
+  content: '⚙';
+  font-size: 20px;
+}
+
+.settings-scroll {
+  overflow-y: auto;
+  max-height: 60vh;
+  padding: 24px;
+}
+
+.settings-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-scroll::-webkit-scrollbar-track {
+  background: #f1f3f4;
+  border-radius: 3px;
+}
+
+.settings-scroll::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.settings-scroll::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.settings-section {
+  margin-bottom: 28px;
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e8eaed;
+}
+
+.settings-section:last-child {
+  margin-bottom: 0;
+}
+
+.settings-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1c24;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  border-left: 4px solid #4facfe;
+  position: relative;
+}
+
+.settings-section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 0 2px 2px 0;
 }
 
 .settings-grid {
-  display: grid; grid-template-columns: 1fr; gap: 15px;
+  display: grid; grid-template-columns: 1fr; gap: 16px;
 }
 
-.setting-group { display: flex; flex-direction: column; gap: 5px; }
-.setting-group label { font-size: 12px; color: #666; font-weight: bold; }
-.setting-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+.settings-grid-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.setting-group { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+}
+
+.setting-group label { 
+  font-size: 13px; 
+  color: #5f6368; 
+  font-weight: 500; 
+  padding-left: 8px;
+}
+
+.setting-group input { 
+  padding: 10px 12px; 
+  border: 2px solid #e8eaed; 
+  border-radius: 8px;
+  font-size: 14px;
+  color: #3c4043;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.setting-group input:focus { 
+  border-color: #4facfe; 
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.setting-group input:hover {
+  border-color: #dadce0;
+}
+
+.setting-group input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.setting-group input[type="number"]::-webkit-outer-spin-button,
+.setting-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
 .modal-actions {
-  margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-top: 1px solid #e8eaed;
+  display: flex; gap: 12px; justify-content: flex-end;
 }
 
-.btn-confirm { background: #4facfe; color: white; padding: 10px 25px; }
-.btn-cancel { background: #ced4da; color: #333; padding: 10px 25px; }
+.btn-settings {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-confirm { 
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white; 
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+.btn-confirm:hover { 
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+}
+
+.btn-confirm:active {
+  transform: translateY(0);
+}
+
+.btn-cancel { 
+  background: #e8eaed; 
+  color: #5f6368; 
+}
+
+.btn-cancel:hover { 
+  background: #dadce0;
+  color: #3c4043;
+}
 </style>

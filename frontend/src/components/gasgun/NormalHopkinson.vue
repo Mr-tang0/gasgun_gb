@@ -97,8 +97,9 @@
     <div v-if="showSettings" class="modal-overlay">
 
       <div class="modal-content">
-
-        <h3>工程地址与量程配置</h3>
+        <div class="modal-header">
+          <h3>工程地址与量程配置</h3>
+        </div>
 
         <div class="settings-grid">
 
@@ -345,6 +346,23 @@ onUnmounted(() => { EventsOff("normal_hopkinson_metrics") })
   border: 1px solid rgba(255,255,255,0.1);
 }
 
+.log-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-bottom: 16px;
+}
+
+.log-panel .panel-label {
+  flex-shrink: 0;
+}
+
+.log-panel .info-log-box {
+  flex: 1;
+  min-height: 0;
+}
+
 .panel-label {
   font-size: 12px;
   color: #868e96;
@@ -409,7 +427,6 @@ onUnmounted(() => { EventsOff("normal_hopkinson_metrics") })
 .info-log-box {
   background: #14171e;
   border-radius: 6px;
-  height: 180px;
   padding: 8px;
   overflow: hidden;
 }
@@ -574,30 +591,160 @@ onUnmounted(() => { EventsOff("normal_hopkinson_metrics") })
 .btn-settings:hover { background: #57606f; color: #fff; }
 
 .modal-overlay {
-    position: fixed;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
-    display: flex; justify-content: center; align-items: center;
-    z-index: 1000;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modal-content {
-    background: #f8f9fa; padding: 25px; border-radius: 12px;
-    width: 500px; color: #333;
+  background: linear-gradient(145deg, #ffffff, #f1f3f4);
+  padding: 0;
+  border-radius: 16px;
+  width: 500px;
+  color: #333;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+              0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  padding: 20px 24px;
+  color: white;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-header h3::before {
+  content: '⚙';
+  font-size: 20px;
 }
 
 .settings-grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+  padding: 24px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
 }
 
-.setting-group { display: flex; flex-direction: column; gap: 5px; }
-.setting-group label { font-size: 12px; color: #666; font-weight: bold; }
-.setting-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-.full-width { grid-column: span 2; width: 100%; border: 0; border-top: 1px solid #eee; }
+.setting-group { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 8px; 
+}
+
+.setting-group label { 
+  font-size: 13px; 
+  color: #5f6368; 
+  font-weight: 500; 
+  padding-left: 8px;
+}
+
+.setting-group input { 
+  padding: 10px 12px; 
+  border: 2px solid #e8eaed; 
+  border-radius: 8px;
+  font-size: 14px;
+  color: #3c4043;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.setting-group input:focus { 
+  border-color: #4facfe; 
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.setting-group input:hover {
+  border-color: #dadce0;
+}
+
+.setting-group input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.setting-group input[type="number"]::-webkit-outer-spin-button,
+.setting-group input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.full-width { 
+  grid-column: span 2; 
+  width: 100%; 
+  border: 0; 
+  border-top: 1px solid #e8eaed; 
+  margin: 8px 0;
+}
 
 .modal-actions {
-    margin-top: 20px; display: flex; gap: 10px; justify-content: flex-end;
+  padding: 16px 24px;
+  background: #f8f9fa;
+  border-top: 1px solid #e8eaed;
+  display: flex; gap: 12px; justify-content: flex-end;
 }
-.btn-confirm { background: #4facfe; color: white; padding: 10px 25px; }
-.btn-cancel { background: #ced4da; color: #333; padding: 10px 25px; }
+
+.btn-settings {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-confirm { 
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white; 
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+}
+
+.btn-confirm:hover { 
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+}
+
+.btn-confirm:active {
+  transform: translateY(0);
+}
+
+.btn-cancel { 
+  background: #e8eaed; 
+  color: #5f6368; 
+}
+
+.btn-cancel:hover { 
+  background: #dadce0;
+  color: #3c4043;
+}
 </style>

@@ -6,47 +6,52 @@
         <p class="subtitle">Single-Stage Gas Gun Control System</p>
       </div>
 
-      <div class="side-card log-panel"> 
-        <div class="status-card">
-        <div class="indicator-item">
-          <div class="led led-connect" :class="{ 'active': isConnected }"></div>
-          <span class="indicator-label">连接</span>
+      <div class="side-card status-panel">
+        <div class="status-grid">
+          <div class="indicator-item">
+            <div class="led led-connect" :class="{ 'active': isConnected }"></div>
+            <span class="indicator-label">PLC连接</span>
+          </div>
+          <div class="indicator-item">
+            <div class="led led-alarm" :class="{ 'active': hasAlarm }"></div>
+            <span class="indicator-label">异常警报</span>
+          </div>
         </div>
-
-        <div class="indicator-item">
-          <div class="led led-alarm" :class="{ 'active': hasAlarm }"></div>
-          <span class="indicator-label">警报</span>
-        </div>
-        
-    </div>
-        
       </div>
-      
 
-      <div class="side-card log-panel">
-        <input v-model="deviceIp" type="text" placeholder="设备 IP 地址 (192.168.2.1)" class="ip-input" />
-        <div class="conn-btns">
-          <button class="btn btn-connect" @click="handleConnect(true)">连接</button>
-          <button class="btn btn-disconnect" @click="handleConnect(false)">断开</button>
+      <div class="side-card config-panel">
+        <input v-model="deviceIp" type="text" class="ip-input-modern" placeholder="PLC IP Address" />
+        <div class="conn-btns-group">
+          <button class="btn btn-connect" @click="handleConnect(true)" :disabled="isConnected">
+            连接设备
+          </button>
+          <button class="btn btn-disconnect" @click="handleConnect(false)" :disabled="!isConnected">
+            断开
+          </button>
         </div>
       </div>
 
       <div class="side-card log-panel">
         <div class="panel-label">实时日志</div>
-
         <div class="info-log-box">
           <div class="log-scroll-area">
             <p v-for="(log, i) in logs" :key="i" class="log-line">
               <span class="log-time">{{ log.time }}</span> {{ log.msg }}
             </p>
           </div>
-
         </div>
       </div>
 
       <div class="sidebar-footer">
-        <div class="logo-placeholder">LOGO</div>
+        <button class="btn-settings-modern" @click="showSettings = true">
+          <span class="icon">⚙</span> 系统配置
+        </button>
+        <div class="logo-area">
+          <span class="logo-text">LAB-PLATFORM</span>
+        </div>
       </div>
+
+      
     </aside>
 
     <main class="main-content">
@@ -88,6 +93,24 @@
         <button class="act-btn reset" @click="handleReset">恢复</button>
       </footer>
     </main>
+
+    <div v-if="showSettings" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>系统配置</h3>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-group">
+            <label>默认IP:</label>
+            <input v-model="config.ip" placeholder="192.168.2.1" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-settings btn-cancel" @click="showSettings = false">取消</button>
+          <button class="btn-settings btn-confirm" @click="saveSettings">确认保存</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -117,6 +140,16 @@ const exhaustSwitchFlag = ref(false)
 const vacuumSwitchFlag = ref(false)
 const tailVacuumSwitchFlag = ref(false)
 const fireSwitchFlag = ref(false)
+const showSettings = ref(false)
+
+const config = reactive({
+  ip: '192.168.2.1',
+})
+
+const saveSettings = async () => {
+  showSettings.value = false
+  notify('配置已保存', "success", 2000)
+}
 
 
 
@@ -248,80 +281,80 @@ function handleReset() {
 
     /* Sidebar Styles */
     .sidebar {
-        width: 250px;
-        background: #1a1c24;
-        color: #fff;
-        /* display: flex; */
+        width: 280px;
+        background: #1e222d;
+        display: flex;
         flex-direction: column;
-        padding: 20px;
-        box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+        padding: 24px 16px;
+        box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+        z-index: 10;
     }
 
-    .title { font-size: 22px; margin: 0; color: #4facfe; }
-    .subtitle { font-size: 12px; color: #888; margin-bottom: 30px; }
+    .sidebar-header {
+        margin-bottom: 24px;
+        padding: 0 8px;
+    }
 
+    .title { 
+        font-size: 20px; 
+        color: #fff; 
+        font-weight: 600; 
+        letter-spacing: 0.5px;
+        margin: 0;
+    }
 
+    .subtitle { 
+        font-size: 10px; 
+        color: #4facfe; 
+        text-transform: uppercase; 
+        margin-top: 4px;
+    }
 
-    .status-card {
-        background: #353b48;
-        padding: 15px;
-        border-radius: 8px;
-        display: flex;
-        justify-content: space-around; /* 等距排列三个灯 */
-        align-items: center;
-        border-bottom: 2px solid #2d3436; 
+    .status-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
     }
 
     .indicator-item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
     }
 
     .led {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        background: #5a5858; /* 默认关闭颜色 */
-        transition: all 0.5s ease;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        background: #343a40;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+        transition: 0.3s;
     }
 
-    .led-normal.active {
-        background:#27ae60;
-        box-shadow: 0 0 5px #41b883, inset 0 1px 2px rgba(255,255,255,0.5);
+    .led-connect.active { 
+        background: #41b883; 
+        box-shadow: 0 0 10px #41b883; 
     }
 
-    .led-connect.active {
-        background: #41b883; /* 绿色 */
-        box-shadow: 0 0 5px #41b883, inset 0 1px 2px rgba(255,255,255,0.5);
+    .led-alarm.active { 
+        background: #fa5252; 
+        box-shadow: 0 0 10px #fa5252; 
+        animation: blink 1s infinite; 
     }
 
-
-    .led-alarm.active {
-        background: #e74c3c;
-        box-shadow: 0 0 5px #e74c3c, inset 0 1px 2px rgba(255,255,255,0.5);
-        animation: blink 1s infinite;
-    }
-
-    /* 警报闪烁动画 */
     @keyframes blink {
         0% { opacity: 1; }
         50% { opacity: 0.3; }
         100% { opacity: 1; }
     }
 
-
-    .indicator-label {
-        font-size: 15px;
-        color: #86868b;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+    .indicator-label { 
+        font-size: 11px; 
+        color: #ced4da; 
     }
 
-    .ip-input {
+    .ip-input-modern {
         width: 80%;
         background: #2a2d3a;
         border: 1px solid #444;
@@ -330,13 +363,36 @@ function handleReset() {
         color: #fff;
         margin: 10px;
         font-size: 1.2rem;
-
     }
 
-    .conn-btns { display: flex; gap: 10px; }
-    .btn { flex: 1; padding: 8px; border: none; border-radius: 4px; cursor: pointer; }
-    .btn-connect { background: #4facfe; color: #fff; }
-    .btn-disconnect { background: #333; color: #ccc; }
+    .conn-btns-group {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn { 
+        flex: 1; 
+        padding: 8px; 
+        border: none; 
+        border-radius: 4px; 
+        cursor: pointer; 
+        transition: opacity 0.2s;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-connect { 
+        background: #4facfe; 
+        color: #fff; 
+    }
+
+    .btn-disconnect { 
+        background: #333; 
+        color: #ccc; 
+    }
 
 
     /* 日志区 */
@@ -347,6 +403,23 @@ function handleReset() {
       padding: 16px;
       margin-bottom: 16px;
       border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .log-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      margin-bottom: 16px;
+    }
+
+    .log-panel .panel-label {
+      flex-shrink: 0;
+    }
+
+    .log-panel .info-log-box {
+      flex: 1;
+      min-height: 0;
     }
 
     .panel-label {
@@ -361,7 +434,6 @@ function handleReset() {
     .info-log-box {
       background: #14171e;
       border-radius: 6px;
-      height: 180px;
       padding: 8px;
       overflow: hidden;
     }
@@ -377,8 +449,38 @@ function handleReset() {
     .log-time { color: #666; margin-right: 6px; }
 
 
-    .sidebar-footer { text-align: center; padding-top: 20px; }
-    .logo-placeholder { font-weight: bold; color: #444; border: 2px solid #444; padding: 10px; }
+    .sidebar-footer {
+        margin-top: auto;
+    }
+
+    .btn-settings-modern {
+        width: 100%;
+        padding: 12px;
+        background: #343a40;
+        border: none;
+        border-radius: 8px;
+        color: #adb5bd;
+        cursor: pointer;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .btn-settings-modern:hover { 
+        color: #fff; 
+        background: #495057; 
+    }
+
+    .logo-area {
+      text-align: center;
+      margin-top: 16px;
+      border-top: 1px solid #333;
+      padding-top: 12px;
+    }
+
+    .logo-text { font-weight: 800; color: #444; letter-spacing: 2px; font-size: 14px; }
 
     /* Main Content Styles */
     .main-content {
@@ -463,4 +565,136 @@ function handleReset() {
     .act-btn.fire { background: #ff3b30; color: #fff; border: none; }
     .act-btn.fire:hover { background: #ad8684; }
     .act-btn.reset { background: #8e8e93; color: #fff; border: none; }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex; justify-content: center; align-items: center;
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background: linear-gradient(145deg, #ffffff, #f1f3f4);
+        padding: 0;
+        border-radius: 16px;
+        width: 500px;
+        color: #333;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3),
+                    0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from { 
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to { 
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        padding: 20px 24px;
+        color: white;
+    }
+
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .modal-header h3::before {
+        content: '⚙';
+        font-size: 20px;
+    }
+
+    .settings-grid {
+        padding: 24px;
+        display: grid; grid-template-columns: 1fr; gap: 16px;
+    }
+
+    .setting-group { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 8px; 
+    }
+
+    .setting-group label { 
+        font-size: 13px; 
+        color: #5f6368; 
+        font-weight: 500; 
+        padding-left: 8px;
+    }
+
+    .setting-group input { 
+        padding: 10px 12px; 
+        border: 2px solid #e8eaed; 
+        border-radius: 8px;
+        font-size: 14px;
+        color: #3c4043;
+        background: #fafafa;
+        transition: all 0.2s ease;
+        outline: none;
+    }
+
+    .setting-group input:focus { 
+        border-color: #4facfe; 
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+    }
+
+    .modal-actions {
+        padding: 16px 24px;
+        background: #f8f9fa;
+        border-top: 1px solid #e8eaed;
+        display: flex; gap: 12px; justify-content: flex-end;
+    }
+
+    .btn-settings {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        outline: none;
+    }
+
+    .btn-confirm { 
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white; 
+        box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+    }
+
+    .btn-confirm:hover { 
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+    }
+
+    .btn-cancel { 
+        background: #e8eaed; 
+        color: #5f6368; 
+    }
+
+    .btn-cancel:hover { 
+        background: #dadce0;
+        color: #3c4043;
+    }
 </style>
