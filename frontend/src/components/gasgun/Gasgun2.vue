@@ -56,76 +56,119 @@
 
     <main class="main-content">
       <section class="metrics-grid">
-        <div class="metric-card" v-for="m in metrics" :key="m.label">
-          <div class="card-inner">
-            <span class="label">{{ m.label }}</span>
-            <div class="value-row">
-              <span class="value">{{ m.value }}</span>
-              <span class="unit">{{ m.unit }}</span>
+        <!-- 输入气压 -->
+        <div class="metric-card">
+          <span class="label">输入气压 (MPa)</span>
+          <span class="main-value">{{ inputPressure }}</span>
+        </div>
+        
+        <!-- 尾部真空度 -->
+        <div class="metric-card">
+          <span class="label">尾部真空度 (Pa)</span>
+          <span class="main-value">{{ tailVacuumDegree }}</span>
+        </div>
+        
+        <!-- 一级气室气压 -->
+        <div class="metric-card">
+          <span class="label">一级气室气压 (MPa)</span>
+          <span class="main-value">{{ cylinderPressure }}</span>
+        </div>
+        
+        <!-- 二级泵管气压 -->
+        <div class="metric-card pump-tube-card">
+          <span class="label">{{ pumpTubeLabel }}</span>
+          <div class="value-area">
+            <span class="main-value">{{ pumpTubeMainValue }}</span>
+            <button 
+              class="toggle-btn" 
+              @mousedown="PumpTubePrecision('high')" 
+              @mouseup="PumpTubePrecision('low')"
+              @mouseleave="PumpTubePrecision('low')"
+            >切换</button>
+          </div>
+          <span class="sub-value">{{ pumpTubeSubValue }}</span>
+        </div>
+        
+        <!-- 靶室真空度 -->
+        <div class="metric-card">
+          <span class="label">靶室真空度 (Pa)</span>
+          <span class="main-value">{{ targetVacuumDegree }}</span>
+        </div>
+      </section>
+
+      <section class="device-controls"> 
+        <section class="device-visualization">
+          <div class="schematic-view">
+            <img src="../../assets/images/gasgun2.png" alt="Gasgun2示意图" class="cannon-image" draggable="false"/>
+          </div>
+          <div v-if=false class="footer-leds">
+            <div class="led-row">
+              <div v-for="i in 16" :key="'row1-' + i" class="footer-led" :class="{ 'active': ledStatus[0][i-1] }"></div>
+            </div>
+            <div class="led-row">
+              <div v-for="i in 16" :key="'row2-' + i" class="footer-led" :class="{ 'active': ledStatus[1][i-1] }"></div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section class="device-visualization">
-        <div class="schematic-view">
-          <img src="../../assets/images/gasgun2.png" alt="Gasgun2示意图" class="cannon-image" draggable="false"/>
-        </div>
-      </section>
-
-      <section class="control-panel">
-        <div class="control-section">
-          <h3 class="section-title">真空控制</h3>
-          <div class="control-buttons">
-            <button class="ctrl-btn" :class="{ 'active': vacuumRunning }" @click="toggleVacuum">
-              {{ vacuumRunning ? '停止抽真空' : '开始抽真空' }}
-            </button>
-            <button class="ctrl-btn" :class="{ 'active': pumpTubeVacuumRunning }" @click="togglePumpTubeVacuum">
-              {{ pumpTubeVacuumRunning ? '停止抽泵管' : '开始抽泵管' }}
-            </button>
-          </div>
-        </div>
-
-        <div class="control-section">
-          <h3 class="section-title">压力控制</h3>
-          <div class="pressure-controls">
-            <div class="pressure-input-group">
-              <label>泵管目标压力 (MPa):</label>
-              <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
-              <button class="ctrl-btn" :class="{ 'active': pumpTubePressureRunning }" @click="togglePumpTubePressure">
-                {{ pumpTubePressureRunning ? '停止' : '自动控制' }}
+        <section class="control-panel">
+          <div class="control-section">
+            <h3 class="section-title">① 真空控制</h3>
+            <div class="control-buttons">
+              <button class="ctrl-btn" :class="{ 'active': vacuumRunning }" @click="toggleVacuum">
+                {{ vacuumRunning ? '停止抽真空' : '开始抽真空' }}
+              </button>
+              <button class="ctrl-btn" :class="{ 'active': pumpTubeVacuumRunning }" @click="togglePumpTubeVacuum">
+                {{ pumpTubeVacuumRunning ? '停止抽泵管' : '开始抽泵管' }}
               </button>
             </div>
-            <div class="pressure-input-group">
-              <label>气瓶目标压力 (MPa):</label>
-              <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" />
-              <button class="ctrl-btn" :class="{ 'active': cylinderPressureRunning }" @click="toggleCylinderPressure">
-                {{ cylinderPressureRunning ? '停止' : '自动控制' }}
-              </button>
+          </div>
+
+          <div class="control-section">
+            <h3 class="section-title">② 压力控制</h3>
+            <div class="pressure-controls">
+              <div class="pressure-input-group">
+                <label>泵管压力 (MPa):</label>
+                <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
+                <button class="ctrl-btn" :class="{ 'active': pumpTubePressureRunning }" @click="togglePumpTubePressure">
+                  {{ pumpTubePressureRunning ? '停止' : '自动控制' }}
+                </button>
+              </div>
+              <div class="pressure-input-group">
+                <label>气瓶压力 (MPa):</label>
+                <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" />
+                <button class="ctrl-btn" :class="{ 'active': cylinderPressureRunning }" @click="toggleCylinderPressure">
+                  {{ cylinderPressureRunning ? '停止' : '自动控制' }}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="control-section">
-          <h3 class="section-title">发射控制</h3>
-          <div class="fire-controls">
-            <div class="trigger-mode">
-              <label>触发模式:</label>
-              <button class="mode-btn" :class="{ 'active': !isExternalTrigger }" @click="setTriggerMode(false)">内触发</button>
-              <button class="mode-btn" :class="{ 'active': isExternalTrigger }" @click="setTriggerMode(true)">外触发</button>
+          <div class="control-section">
+            <h3 class="section-title">③ 发射控制</h3>
+            <div class="fire-controls">
+              <div class="trigger-mode">
+                <label>触发模式:</label>
+                <button class="mode-btn" :class="{ 'active': !isExternalTrigger }" @click="setTriggerMode(false)">内触发</button>
+                <button class="mode-btn" :class="{ 'active': isExternalTrigger }" @click="setTriggerMode(true)">外触发</button>
+              </div>
+              <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button>
+              <button class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
             </div>
-            <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button>
-            <button class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
           </div>
-        </div>
 
-        <div class="control-section">
-          <h3 class="section-title">系统控制</h3>
-          <div class="control-buttons">
-            <button class="ctrl-btn reset-btn" @click="handleReset">系统恢复</button>
+          <div class="control-section">
+            <h3 class="section-title">④ 系统控制</h3>
+            <div class="control-buttons">
+              <button class="ctrl-btn reset-btn" @click="handleReset">系统恢复</button>
+            </div>
           </div>
-        </div>
+        </section>
       </section>
+
+      
+
+      
     </main>
   </div>
 
@@ -184,14 +227,44 @@ const isExternalTrigger = ref(false)
 const pumpTubeTargetPressure = ref(25.0)
 const cylinderTargetPressure = ref(12.0)
 
-const metrics = reactive([
-  { label: '输入压力', value: '0.00', unit: 'MPa' },
-  { label: '气瓶压力', value: '0.00', unit: 'MPa' },
-  { label: '泵管压力', value: '0.00', unit: 'MPa' },
-  { label: '泵管压力(高精)', value: '0.000', unit: 'MPa' },
-  { label: '靶室真空度', value: '0.0', unit: 'Pa' },
-  { label: '尾部真空度', value: '0.0', unit: 'Pa' }
+// 指标数据
+const inputPressure = ref('00.00')
+const tailVacuumDegree = ref('10000.0')
+const cylinderPressure = ref('00.00')
+const pumpTubePressure = ref('00.00')
+const pumpTubePressureHi = ref('00.000')
+const targetVacuumDegree = ref('10000.0')
+
+// LED状态 (两行，每行16个)
+const ledStatus = reactive([
+  [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+  [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
 ])
+
+// 二级泵管气压精度切换
+const pumpTubeIsHighPrecision = ref(false)
+const pumpTubeLabel = ref('二级泵管气压 (MPa)')
+const pumpTubeMainValue = ref('0.00')
+const pumpTubeSubValue = ref('0.000')
+
+const PumpTubePrecision = (key) => {
+  if (key === 'high') {
+    pumpTubeIsHighPrecision.value = true
+  } else if (key === 'low') {
+    pumpTubeIsHighPrecision.value = false
+  }
+  if (pumpTubeIsHighPrecision.value) {
+    pumpTubeLabel.value = '二级泵管气压 (高精度)'
+    // 交换数值：主值显示高精度，副值显示普通精度
+    pumpTubeMainValue.value = pumpTubePressureHi.value
+    pumpTubeSubValue.value = pumpTubePressure.value
+  } else {
+    pumpTubeLabel.value = '二级泵管气压 (MPa)'
+    // 恢复：主值显示普通精度，副值显示高精度
+    pumpTubeMainValue.value = pumpTubePressure.value
+    pumpTubeSubValue.value = pumpTubePressureHi.value
+  }
+}
 
 const logs = ref([
   { time: '00:00:00', msg: '初始化系统内核...' },
@@ -354,19 +427,28 @@ const saveSettings = async () => {
 
 onMounted(async () => {
   const result = await GetConfig()
-  if (result) {
-    config.ip = result.ip
-    deviceIp.value = result.ip
-  }
+  // if (result) {
+  //   config.ip = result.ip
+  //   deviceIp.value = result.ip
+  // }
 
   EventsOn("update_gasgun2_metrics", (data) => {
     if (!data) return
-    metrics[0].value = data.inputPressure.toFixed(2)
-    metrics[1].value = data.cylinderPressure.toFixed(2)
-    metrics[2].value = data.pumpTubePressure.toFixed(2)
-    metrics[3].value = data.pumpTubePressureHi.toFixed(3)
-    metrics[4].value = data.targetVacuumDegree.toFixed(1)
-    metrics[5].value = data.tailVacuumDegree.toFixed(1)
+    inputPressure.value = data.inputPressure.toFixed(2)
+    tailVacuumDegree.value = data.tailVacuumDegree.toFixed(1)
+    cylinderPressure.value = data.cylinderPressure.toFixed(2)
+    pumpTubePressure.value = data.pumpTubePressure.toFixed(2)
+    pumpTubePressureHi.value = data.pumpTubePressureHi.toFixed(3)
+    targetVacuumDegree.value = data.targetVacuumDegree.toFixed(1)
+    
+    // 更新泵管气压显示值
+    if (pumpTubeIsHighPrecision.value) {
+      pumpTubeMainValue.value = pumpTubePressureHi.value
+      pumpTubeSubValue.value = pumpTubePressure.value
+    } else {
+      pumpTubeMainValue.value = pumpTubePressure.value
+      pumpTubeSubValue.value = pumpTubePressureHi.value
+    }
   })
 })
 
@@ -533,34 +615,87 @@ onUnmounted(() => {
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 16px;
   flex-shrink: 0;
 }
 
 .metric-card {
   background: #fff;
-  padding: 20px;
+  padding: 16px;
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   border-top: 4px solid #4facfe;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
-.metric-card .label { font-size: 14px; color: #666; }
+.metric-card .label { 
+  font-size: 13px; 
+  color: #666; 
+  text-align: center;
+}
 
-.metric-card .value {
+.metric-card .main-value {
   font-size: 28px;
   font-weight: bold;
   color: #1a1c24;
 }
 
-.metric-card .unit { margin-left: 5px; color: #888; }
+.metric-card .sub-value {
+  display: none;
+}
+
+/* 二级泵管气压卡片特殊样式 */
+.pump-tube-card {
+  border-top-color: #f97316;
+}
+
+.pump-tube-card .sub-value {
+  display: block;
+  font-size: 14px;
+  color: #888;
+}
+
+.pump-tube-card .value-area {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pump-tube-card .toggle-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid #4facfe;
+  border-radius: 4px;
+  background: #fff;
+  color: #4facfe;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pump-tube-card .toggle-btn:hover {
+  background: #4facfe;
+  color: #fff;
+}
+
+.device-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex: 1;
+  min-height: 0;
+}
+
 
 .device-visualization {
   flex: 1;
   background: #fff;
   border-radius: 16px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 20px;
@@ -568,8 +703,8 @@ onUnmounted(() => {
 }
 
 .schematic-view {
+  flex: 1;
   width: 100%;
-  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -581,12 +716,49 @@ onUnmounted(() => {
   object-fit: contain;
 }
 
+.footer-leds {
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.led-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.led-row:last-child {
+  margin-bottom: 0;
+}
+
+.footer-led {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e9ecef;
+  border: 1px solid #dee2e6;
+  transition: all 0.2s;
+}
+
+.footer-led.active {
+  background: #4facfe;
+  border-color: #4facfe;
+  box-shadow: 0 0 8px rgba(79, 172, 254, 0.6);
+}
+
 .control-panel {
   background: #fff;
   border-radius: 16px;
-  padding: 20px;
+  padding: 16px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   flex-shrink: 0;
+  width: 320px;
+  max-width: 40%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-height: 100%;
 }
 
 .control-section {
@@ -610,19 +782,24 @@ onUnmounted(() => {
 
 .control-buttons {
   display: flex;
-  gap: 12px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ctrl-btn {
   flex: 1;
-  padding: 12px 20px;
-  border-radius: 8px;
+  min-width: calc(50% - 4px);
+  padding: 10px 12px;
+  border-radius: 6px;
   border: 1px solid #dee2e6;
   background: #f8f9fa;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
+  box-sizing: border-box;
+  word-break: keep-all;
+  text-align: center;
 }
 
 .ctrl-btn:hover {
@@ -655,26 +832,30 @@ onUnmounted(() => {
 .pressure-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 8px;
 }
 
 .pressure-input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pressure-input-group label {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
   font-weight: 500;
 }
 
 .pressure-input {
-  padding: 10px;
+  padding: 8px;
   border: 1px solid #dee2e6;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .fire-controls {
