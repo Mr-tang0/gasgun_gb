@@ -16,17 +16,19 @@ func main() {
 	// Create an instance of the app structure
 
 	gasgun1 := backend.NewGasGun1Controller()
+	gasgun2 := backend.NewGasGun2Controller()
 	normalHopkinson := backend.NewNormalHopkinsonContoller()
 
 	app := NewApp()
 	app.gasgun1 = gasgun1
+	app.gasgun2 = gasgun2
 	app.normalHopkinson = normalHopkinson
 
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "力学加载实验室一站式操作平台",
-		Width:  1200,
-		Height: 900,
+		Width:  1000,
+		Height: 700,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
@@ -35,6 +37,7 @@ func main() {
 		Bind: []interface{}{
 			app,
 			gasgun1,
+			gasgun2,
 			normalHopkinson,
 		},
 	})

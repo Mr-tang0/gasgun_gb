@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	protocol "gasgun_gb/backend/Protocol"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,15 +13,10 @@ import (
 )
 
 type GasGun1Controller struct {
-	Siemens    *Siemens
+	Siemens    *protocol.Siemens
 	ctx        context.Context
 	stopListen context.CancelFunc     // 用于停止 100ms 的轮询
 	config     map[string]interface{} // 存储配置
-}
-
-type APIResponse struct {
-	Status  bool   `json:"Status"`
-	Message string `json:"Message"`
 }
 
 func NewGasGun1Controller() *GasGun1Controller {
@@ -29,7 +25,7 @@ func NewGasGun1Controller() *GasGun1Controller {
 
 func (g *GasGun1Controller) Init(ctx context.Context) {
 	g.ctx = ctx
-	g.Siemens = NewSiemens(ctx)
+	g.Siemens = protocol.NewSiemens(ctx)
 	// 初始化时加载一次配置到内存
 	g.GetConfig()
 }

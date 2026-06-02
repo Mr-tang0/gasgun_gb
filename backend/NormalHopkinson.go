@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	protocol "gasgun_gb/backend/Protocol"
 	"os"
 	"path/filepath"
 	"time"
@@ -12,7 +13,7 @@ import (
 )
 
 type NormalHopkinsonContoller struct {
-	Siemens    *Siemens
+	Siemens    *protocol.Siemens
 	ctx        context.Context
 	stopListen context.CancelFunc     // 用于停止 100ms 的轮询
 	config     map[string]interface{} // 存储配置
@@ -24,7 +25,7 @@ func NewNormalHopkinsonContoller() *NormalHopkinsonContoller {
 
 func (g *NormalHopkinsonContoller) Init(ctx context.Context) {
 	g.ctx = ctx
-	g.Siemens = NewSiemens(ctx)
+	g.Siemens = protocol.NewSiemens(ctx)
 }
 
 func (g *NormalHopkinsonContoller) GetConfigPath() string {

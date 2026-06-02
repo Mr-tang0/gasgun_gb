@@ -31,7 +31,7 @@ const options = [
   { id: 'gasgun1', name: '一级气炮' },
   { id: 'gasgun2', name: '二级气炮' },
   { id: 'hopkinson', name: '常温Hopkinson杆' },
-  { id: '15mmbirdgun', name: '15mm鸟枪' },
+  // { id: '15mmbirdgun', name: '15mm鸟枪' },
 
 ]
 
