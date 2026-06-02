@@ -113,7 +113,7 @@
 
         <section class="control-panel">
           <div class="control-section">
-            <h3 class="section-title">① 真空控制</h3>
+            <h3 class="section-title"><span class="step-number">1</span>真空控制</h3>
             <div class="control-buttons">
               <button class="ctrl-btn" :class="{ 'active': vacuumRunning }" @click="toggleVacuum">
                 {{ vacuumRunning ? '停止抽真空' : '开始抽真空' }}
@@ -125,27 +125,43 @@
           </div>
 
           <div class="control-section">
-            <h3 class="section-title">② 压力控制</h3>
+            <h3 class="section-title"><span class="step-number">2</span>压力控制</h3>
             <div class="pressure-controls">
               <div class="pressure-input-group">
-                <label>泵管压力 (MPa):</label>
-                <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
-                <button class="ctrl-btn" :class="{ 'active': pumpTubePressureRunning }" @click="togglePumpTubePressure">
-                  {{ pumpTubePressureRunning ? '停止' : '自动控制' }}
-                </button>
-              </div>
-              <div class="pressure-input-group">
                 <label>气瓶压力 (MPa):</label>
-                <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" />
-                <button class="ctrl-btn" :class="{ 'active': cylinderPressureRunning }" @click="toggleCylinderPressure">
-                  {{ cylinderPressureRunning ? '停止' : '自动控制' }}
-                </button>
+                <div class="pressure-input-row">
+                  <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" />
+                  <div class="toggle-switch" :class="{ 'active': cylinderAutoMode }" @click="toggleCylinderAutoMode">
+                  </div>
+                </div>
+                <div class="manual-controls">
+                  <button class="mini-btn plus-btn" :disabled="cylinderAutoMode" 
+                    @mousedown="manualPressurize(true)" @mouseup="manualPressurize(false)">加气</button>
+                  <button class="mini-btn minus-btn" :disabled="cylinderAutoMode" 
+                    @mousedown="manualDecompress(true)" @mouseup="manualDecompress(false)">泄气</button>
+                </div>
               </div>
+
+              <div class="pressure-input-group">
+                <label>泵管压力 (MPa):</label>
+                <div class="pressure-input-row">
+                  <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
+                  <div class="toggle-switch" :class="{ 'active': pumpTubeAutoMode }" @click="togglePumpTubeAutoMode">
+                  </div>
+                </div>
+                <div class="manual-controls">
+                  <button class="mini-btn plus-btn" :disabled="pumpTubeAutoMode" 
+                    @mousedown="manualPumpTubePressurize(true)" @mouseup="manualPumpTubePressurize(false)">加气</button>
+                  <button class="mini-btn minus-btn" :disabled="pumpTubeAutoMode" 
+                    @mousedown="manualPumpTubeDecompress(true)" @mouseup="manualPumpTubeDecompress(false)">泄气</button>
+                </div>
+              </div>
+
             </div>
           </div>
 
           <div class="control-section">
-            <h3 class="section-title">③ 发射控制</h3>
+            <h3 class="section-title"><span class="step-number">3</span>发射控制</h3>
             <div class="fire-controls">
               <div class="trigger-mode">
                 <label>触发模式:</label>
@@ -153,12 +169,12 @@
                 <button class="mode-btn" :class="{ 'active': isExternalTrigger }" @click="setTriggerMode(true)">外触发</button>
               </div>
               <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button>
-              <button class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
+              <button v-if="!isExternalTrigger" class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
             </div>
           </div>
 
           <div class="control-section">
-            <h3 class="section-title">④ 系统控制</h3>
+            <h3 class="section-title"><span class="step-number">4</span>系统控制</h3>
             <div class="control-buttons">
               <button class="ctrl-btn reset-btn" @click="handleReset">系统恢复</button>
             </div>
@@ -304,6 +320,10 @@ import {
   SetTriggerMode,
   SaveConfig,
   GetConfig,
+  ManualPumpTubePressurize,
+  ManualPumpTubeDecompress,
+  ManualPressurize,
+  ManualDecompress,
 } from '../../../wailsjs/go/backend/GasGun2Controller'
 
 const notify = inject('globalNotify')
@@ -319,6 +339,10 @@ const pumpTubePressureRunning = ref(false)
 const cylinderPressureRunning = ref(false)
 const isExternalTrigger = ref(false)
 
+// 自动/手动模式切换
+const pumpTubeAutoMode = ref(false)
+const cylinderAutoMode = ref(false)
+
 const pumpTubeTargetPressure = ref(2.0)
 const cylinderTargetPressure = ref(1.0)
 
@@ -327,7 +351,7 @@ const inputPressure = ref('00.00')
 const tailVacuumDegree = ref('10000.0')
 const cylinderPressure = ref('00.00')
 const pumpTubePressure = ref('00.00')
-const pumpTubePressureHi = ref('00.000')
+const pumpTubePressureHi = ref('0.000')
 const targetVacuumDegree = ref('10000.0')
 
 // LED状态 (两行，每行16个)
@@ -464,17 +488,21 @@ const togglePumpTubeVacuum = async () => {
   }
 }
 
-const togglePumpTubePressure = async () => {
-  if (pumpTubePressureRunning.value) {
-    const response = await StopAutoPumpTubePressure()
-    if (response.Status) {
+const togglePumpTubeAutoMode = async () => {
+  if (pumpTubeAutoMode.value) {
+    // 切换到手动模式前，先停止自动控制
+    if (pumpTubePressureRunning.value) {
+      await StopAutoPumpTubePressure()
       pumpTubePressureRunning.value = false
-      addLog('泵管自动压力控制已停止')
     }
-    notify(response.Message, response.Status ? "success" : "error", 2000)
+    pumpTubeAutoMode.value = false
+    addLog('泵管压力控制已切换为手动模式')
+    notify('已切换为手动模式', "success", 2000)
   } else {
+    // 切换到自动模式
     const response = await AutoPumpTubePressure(pumpTubeTargetPressure.value)
     if (response.Status) {
+      pumpTubeAutoMode.value = true
       pumpTubePressureRunning.value = true
       addLog(`泵管自动压力控制已启动，目标: ${pumpTubeTargetPressure.value} MPa`)
     }
@@ -482,22 +510,59 @@ const togglePumpTubePressure = async () => {
   }
 }
 
-const toggleCylinderPressure = async () => {
-  if (cylinderPressureRunning.value) {
-    const response = await StopAutoCylinderPressure()
-    if (response.Status) {
+const toggleCylinderAutoMode = async () => {
+  if (cylinderAutoMode.value) {
+    // 切换到手动模式前，先停止自动控制
+    if (cylinderPressureRunning.value) {
+      await StopAutoCylinderPressure()
       cylinderPressureRunning.value = false
-      addLog('气瓶自动压力控制已停止')
     }
-    notify(response.Message, response.Status ? "success" : "error", 2000)
+    cylinderAutoMode.value = false
+    addLog('气瓶压力控制已切换为手动模式')
+    notify('已切换为手动模式', "success", 2000)
   } else {
+    // 切换到自动模式
     const response = await AutoCylinderPressure(cylinderTargetPressure.value)
     if (response.Status) {
+      cylinderAutoMode.value = true
       cylinderPressureRunning.value = true
       addLog(`气瓶自动压力控制已启动，目标: ${cylinderTargetPressure.value} MPa`)
     }
     notify(response.Message, response.Status ? "success" : "error", 2000)
   }
+}
+
+// 手动控制函数
+const manualPumpTubePressurize = async (enable) => {
+  const response = await ManualPumpTubePressurize(enable)
+  if (response.Status) {
+    addLog(enable ? '泵管增压阀已打开' : '泵管增压阀已关闭')
+  }
+  notify(response.Message, response.Status ? "success" : "error", 2000)
+}
+
+const manualPumpTubeDecompress = async (enable) => {
+  const response = await ManualPumpTubeDecompress(enable)
+  if (response.Status) {
+    addLog(enable ? '泵管减压阀已打开' : '泵管减压阀已关闭')
+  }
+  notify(response.Message, response.Status ? "success" : "error", 2000)
+}
+
+const manualPressurize = async (enable) => {
+  const response = await ManualPressurize(enable)
+  if (response.Status) {
+    addLog(enable ? '气瓶增压阀已打开' : '气瓶增压阀已关闭')
+  }
+  notify(response.Message, response.Status ? "success" : "error", 2000)
+}
+
+const manualDecompress = async (enable) => {
+  const response = await ManualDecompress(enable)
+  if (response.Status) {
+    addLog(enable ? '气瓶减压阀已打开' : '气瓶减压阀已关闭')
+  }
+  notify(response.Message, response.Status ? "success" : "error", 2000)
 }
 
 const setTriggerMode = async (isExternal) => {
@@ -890,10 +955,10 @@ onUnmounted(() => {
 .control-panel {
   background: #fff;
   border-radius: 16px;
-  padding: 16px;
+  padding: 12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
   flex-shrink: 0;
-  width: 320px;
+  width: 300px;
   max-width: 40%;
   box-sizing: border-box;
   overflow-y: auto;
@@ -901,15 +966,22 @@ onUnmounted(() => {
 }
 
 .control-section {
-  margin-bottom: 24px;
-  padding-bottom: 24px;
-  border-bottom: 1px solid #e9ecef;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid #f0f0f0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.control-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .control-section:last-child {
   margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
 }
 
 .section-title {
@@ -917,6 +989,31 @@ onUnmounted(() => {
   font-weight: 600;
   color: #1a1c24;
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-radius: 2px;
+}
+
+.section-title .step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .control-buttons {
@@ -972,6 +1069,111 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.pressure-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pressure-input-row .pressure-input {
+  flex: 1;
+}
+
+.toggle-switch {
+  width: 52px;
+  height: 28px;
+  background: #ffffff;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 2px solid #e8eaed;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.toggle-switch::before {
+  content: '手动';
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 600;
+  color: #4facfe;
+  transition: all 0.3s ease;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(145deg, #4facfe, #00f2fe);
+  border-radius: 50%;
+  top: 1px;
+  left: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(79, 172, 254, 0.4);
+}
+
+.toggle-switch.active {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border-color: #4facfe;
+}
+
+.toggle-switch.active::before {
+  content: '自动';
+  right: auto;
+  left: 2px;
+  color: white;
+}
+
+.toggle-switch.active::after {
+  left: 25px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.manual-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mini-btn {
+  flex: 1;
+  padding: 6px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mini-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mini-btn.plus-btn {
+  background: #41b883;
+  color: white;
+}
+
+.mini-btn.plus-btn:hover:not(:disabled) {
+  background: #379a6e;
+}
+
+.mini-btn.minus-btn {
+  background: #fa5252;
+  color: white;
+}
+
+.mini-btn.minus-btn:hover:not(:disabled) {
+  background: #e03131;
 }
 
 .pressure-input-group {
