@@ -112,11 +112,11 @@ const onExit = () => {
           <div class="modal-body">
             <div class="update-content">
               <div class="update-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg viewBox="-2 -2 28 28" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                  <path d="M3 3v5h5"/>
+                  <path d="M3 3v6h6"/>
                   <path d="M3 16a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                  <path d="M16 21h5v-5"/>
+                  <path d="M16 17h6v6"/>
                 </svg>
               </div>
               <div class="update-info">
@@ -236,8 +236,8 @@ const onExit = () => {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 48px;
-    height: 48px;
+    width: 66px;
+    height: 66px;
     background: rgba(59, 130, 246, 0.12);
     color: #3b82f6;
     border-radius: 12px;
@@ -245,8 +245,8 @@ const onExit = () => {
 }
 
 .update-icon svg {
-    width: 24px;
-    height: 24px;
+    width: 34px;
+    height: 34px;
     animation: spin-slow 12s linear infinite; /* 缓慢旋转模拟同步更新质感 */
 }
 
