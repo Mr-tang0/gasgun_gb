@@ -80,6 +80,7 @@ func NewGasGun2Controller() *GasGun2Controller {
 
 func (g *GasGun2Controller) Init(ctx context.Context) {
 	g.ctx = ctx
+	fmt.Println("GasGun2Controller init", g.ctx == nil)
 	// 初始化时加载一次配置到内存
 	g.GetConfig()
 }
@@ -105,26 +106,26 @@ func (g *GasGun2Controller) GetConfig() GasGun2Config {
 	defaultConfig := GasGun2Config{
 		IP: "192.168.6.6",
 		Switches: SWITCHAddress{
-			Pressurize:         1,  // 增压阀1
-			Decompress:         2,  // 减压阀1
-			PumpTubePressurize: 3,  // 泵管增压阀1
-			PumpTubeDecompress: 4,  // 泵管减压阀1
-			PumpTubeVacuum:     5,  // 抽泵管真空阀1
-			TargetVacuum:       6,  // 靶室真空阀1
-			TailVacuumProtect:  7,  // 尾真空保护阀
-			PumpTubeProtect:    8,  // 泵管保护阀1
-			FireSwitch:         9,  // 发射阀1
-			SystemDecompress:   10, // 系统减压阀1
+			Pressurize:         0,  // 增压阀1
+			Decompress:         1,  // 减压阀1
+			PumpTubePressurize: 4,  // 泵管增压阀1
+			PumpTubeDecompress: 5,  // 泵管减压阀1
+			PumpTubeVacuum:     7,  // 抽泵管真空阀1
+			TargetVacuum:       13, // 靶室真空阀1
+			TailVacuumProtect:  10, // 尾真空保护阀
+			PumpTubeProtect:    6,  // 泵管保护阀1
+			FireSwitch:         2,  // 发射阀1
+			SystemDecompress:   3,  // 系统减压阀1
 			TargetVacuumPump:   11, // 靶室真空泵1
 			TailVacuumPump:     12, // 尾真空泵1
 		},
 		DataAddresses: DataAddress{
-			InputPressure:      0,  // 输入压力地址
-			CylinderPressure:   2,  // 气瓶压力地址
-			PumpTubePressure:   4,  // 泵管压力地址
-			PumpTubePressureHi: 6,  // 泵管压力高精度地址
-			TargetVacuumDegree: 8,  // 靶室真空度地址
-			TailVacuumDegree:   10, // 尾部真空度地址
+			InputPressure:      56, // 输入压力地址
+			CylinderPressure:   54, // 气瓶压力地址
+			PumpTubePressure:   50, // 泵管压力地址
+			PumpTubePressureHi: 52, // 泵管压力高精度地址
+			TargetVacuumDegree: 58, // 靶室真空度地址
+			TailVacuumDegree:   60, // 尾部真空度地址
 		},
 	}
 
@@ -157,9 +158,22 @@ func (g *GasGun2Controller) SaveConfig(newConfig GasGun2Config) APIResponse {
 	return APIResponse{Status: true, Message: "配置保存成功！"}
 }
 
-// 设置触发模式
+// 设置触发模式：外触发开14和15引脚，内触发则关闭14和15引脚，同时均关闭发射引脚
 func (g *GasGun2Controller) SetTriggerMode(isExternal bool) {
+	err := g.CloseSwitch("FireSwitch") // 无论内外触发都先关闭发射阀，确保安全
+	if err != nil {
+		fmt.Printf("关闭发射阀失败: %v\n", err)
+		return
+	}
+
+	flag := g.xinjieClient.Write_Y_Coils(15, []bool{isExternal, isExternal})
+	if !flag {
+		fmt.Printf("设置触发模式失败: %v\n", flag)
+		return
+	}
+
 	g.isExternalTrigger = isExternal
+	fmt.Printf("触发模式已设置为: %s\n", map[bool]string{true: "外触发", false: "内触发"}[isExternal])
 }
 
 // *********************************** PLC通信区域 *********************************
@@ -184,7 +198,7 @@ func (g *GasGun2Controller) ConnectPLC(ip string) APIResponse {
 	g.stopListen = cancel
 
 	go func(ctx context.Context) {
-		ticker := time.NewTicker(100 * time.Millisecond)
+		ticker := time.NewTicker(500 * time.Millisecond)
 		defer ticker.Stop()
 
 		for {
@@ -231,26 +245,33 @@ func (g *GasGun2Controller) GetRealTimeData() {
 		return
 	}
 
+	g.xinjieClient.Write_M_Coils(0, []bool{true})
+
 	// 从配置中获取数据地址
 	addr := g.config.DataAddresses
 
 	// 每个浮点数占2个寄存器，从输入压力地址开始连续读取6个数据
-	values := g.xinjieClient.ReadFloat32(addr.InputPressure, 6)
+	values := g.xinjieClient.ReadFloat32(50, 6)
 	if len(values) < 6 {
 		fmt.Println("Failed to read metrics from PLC")
 		return
 	}
 
 	metrics := GasGun2Metrics{
-		InputPressure:      values[0], // 输入压力
-		CylinderPressure:   values[1], // 气瓶压力（一级气室）
-		PumpTubePressure:   values[2], // 泵管压力（二级气室）
-		PumpTubePressureHi: values[3], // 泵管压力（高精度）
-		TargetVacuumDegree: values[4], // 靶室真空度
-		TailVacuumDegree:   values[5], // 尾部真空度
+		InputPressure:      values[(addr.InputPressure-50)/2],      // 输入压力
+		CylinderPressure:   values[(addr.CylinderPressure-50)/2],   // 气瓶压力（一级气室）
+		PumpTubePressure:   values[(addr.PumpTubePressure-50)/2],   // 泵管压力（二级气室）
+		PumpTubePressureHi: values[(addr.PumpTubePressureHi-50)/2], // 泵管压力（高精度）
+		TargetVacuumDegree: values[(addr.TargetVacuumDegree-50)/2], // 靶室真空度
+		TailVacuumDegree:   values[(addr.TailVacuumDegree-50)/2],   // 尾部真空度
 	}
 
 	// 发送数据到前端
+	if g.ctx == nil {
+		fmt.Println("ctx is nil")
+		return
+	}
+
 	runtime.EventsEmit(g.ctx, "update_gasgun2_metrics", metrics)
 }
 
@@ -299,14 +320,13 @@ func (g *GasGun2Controller) OpenSwitch(switchName string) error {
 		return err
 	}
 
-	// 直接使用 PackAndWriteCoils 写入 Y 线圈 (加上 0x6000 偏移)
-	modbusAddress := address + 0x6000
-	_, err = g.xinjieClient.PackAndWriteCoils(modbusAddress, []bool{true})
-	if err != nil {
-		return fmt.Errorf("failed to open switch: %s, error: %v", switchName, err)
+	flag := g.xinjieClient.Write_Y_Coils(address, []bool{true})
+	fmt.Printf("打开阀门: %s (Modbus address: %d), result: %v\n", switchName, address, flag)
+
+	if !flag {
+		return fmt.Errorf("打开%s失败", switchName)
 	}
 
-	fmt.Printf("打开阀门: %s (Modbus address: 0x%04X)\n", switchName, modbusAddress)
 	return nil
 }
 
@@ -320,15 +340,12 @@ func (g *GasGun2Controller) CloseSwitch(switchName string) error {
 	if err != nil {
 		return err
 	}
+	flag := g.xinjieClient.Write_Y_Coils(address, []bool{false})
+	fmt.Printf("关闭阀门: %s (Modbus address: %d), result: %v\n", switchName, address, flag)
 
-	// 直接使用 PackAndWriteCoils 写入 Y 线圈 (加上 0x6000 偏移)
-	modbusAddress := address + 0x6000
-	_, err = g.xinjieClient.PackAndWriteCoils(modbusAddress, []bool{false})
-	if err != nil {
-		return fmt.Errorf("failed to close switch: %s, error: %v", switchName, err)
+	if !flag {
+		return fmt.Errorf("关闭%s失败", switchName)
 	}
-
-	fmt.Printf("关闭阀门: %s (Modbus address: 0x%04X)\n", switchName, modbusAddress)
 	return nil
 }
 
@@ -566,30 +583,56 @@ func (g *GasGun2Controller) PrepareFire() APIResponse {
 }
 
 // 6. 恢复：打开减压阀、泵管减压阀、重新开启靶室真空泵
-func (g *GasGun2Controller) ResetSystem() APIResponse {
-	// 打开减压阀
-	err := g.OpenSwitch("Decompress")
-	if err != nil {
-		return APIResponse{Status: false, Message: "打开减压阀失败"}
+func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
+	if reset {
+		// 打开减压阀
+		err := g.OpenSwitch("Decompress")
+		if err != nil {
+			return APIResponse{Status: false, Message: "打开减压阀失败"}
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+
+		// 打开泵管减压阀
+		err = g.OpenSwitch("PumpTubeDecompress")
+		if err != nil {
+			return APIResponse{Status: false, Message: "打开泵管减压阀失败"}
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+
+		// 重新开启靶室真空泵
+		err = g.OpenSwitch("TargetVacuumPump")
+		if err != nil {
+			return APIResponse{Status: false, Message: "开启靶室真空泵失败"}
+		}
+
+		return APIResponse{Status: true, Message: "系统恢复完成"}
+	} else {
+		// 关闭减压阀
+		err := g.CloseSwitch("Decompress")
+		if err != nil {
+			return APIResponse{Status: false, Message: "关闭减压阀失败"}
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+
+		// 关闭泵管减压阀
+		err = g.CloseSwitch("PumpTubeDecompress")
+		if err != nil {
+			return APIResponse{Status: false, Message: "关闭泵管减压阀失败"}
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+
+		err = g.CloseSwitch("TargetVacuumPump")
+		if err != nil {
+			return APIResponse{Status: false, Message: "关闭目标真空泵阀失败"}
+		}
+
+		return APIResponse{Status: true, Message: "系统已重置，减压阀和泵管减压阀已关闭，靶室真空泵已关闭"}
 	}
 
-	time.Sleep(500 * time.Millisecond)
-
-	// 打开泵管减压阀
-	err = g.OpenSwitch("PumpTubeDecompress")
-	if err != nil {
-		return APIResponse{Status: false, Message: "打开泵管减压阀失败"}
-	}
-
-	time.Sleep(500 * time.Millisecond)
-
-	// 重新开启靶室真空泵
-	err = g.OpenSwitch("TargetVacuumPump")
-	if err != nil {
-		return APIResponse{Status: false, Message: "开启靶室真空泵失败"}
-	}
-
-	return APIResponse{Status: true, Message: "系统恢复完成"}
 }
 
 // 发射控制

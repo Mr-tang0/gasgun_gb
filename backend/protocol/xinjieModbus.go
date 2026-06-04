@@ -45,6 +45,9 @@ func (x *XinjieClient) OpenTCP(address string, slaveID byte) error {
 func (x *XinjieClient) Close() {
 	if x.handler != nil {
 		x.handler.Close()
+		x.Client = nil
+		x.handler = nil
+		fmt.Println("Modbus TCP 连接已关闭")
 	}
 }
 

@@ -11,6 +11,7 @@ import Update from './components/utils/update.vue'
 import { CallGasgun1 ,
     CallNormalHopkinson,
     APIUpdate,
+    CallGasGun2,
 } from '../wailsjs/go/main/APP'
 
 // 状态声明
@@ -71,6 +72,8 @@ const onSelected = async(type) => {
   }
   else if (type === 'gasgun2') {
     Gasgun2Enable.value = true
+    await CallGasGun2()
+
   }
   console.log('用户选择了:', type)
 }

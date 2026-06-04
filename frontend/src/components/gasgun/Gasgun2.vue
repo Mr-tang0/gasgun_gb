@@ -168,7 +168,7 @@
                 <button class="mode-btn" :class="{ 'active': !isExternalTrigger }" @click="setTriggerMode(false)">内触发</button>
                 <button class="mode-btn" :class="{ 'active': isExternalTrigger }" @click="setTriggerMode(true)">外触发</button>
               </div>
-              <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button>
+              <!-- <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button> -->
               <button v-if="!isExternalTrigger" class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
             </div>
           </div>
@@ -176,7 +176,7 @@
           <div class="control-section">
             <h3 class="section-title"><span class="step-number">4</span>系统控制</h3>
             <div class="control-buttons">
-              <button class="ctrl-btn reset-btn" @click="handleReset">系统恢复</button>
+              <button class="ctrl-btn reset-btn" @click="handleReset">{{ isResetting ? '恢复中...' : '系统恢复' }}</button>
             </div>
           </div>
         </section>
@@ -206,43 +206,43 @@
           <h4 class="settings-section-title">阀门点位配置</h4>
           <div class="settings-grid-2col">
             <div class="setting-group">
-              <label>增压阀:</label>
+              <label>一级气室(气瓶)增压阀(Y):</label>
               <input v-model.number="config.switches.Pressurize" type="number" />
             </div>
             <div class="setting-group">
-              <label>减压阀:</label>
+              <label>一级气室(气瓶)减压阀(Y):</label>
               <input v-model.number="config.switches.Decompress" type="number" />
             </div>
             <div class="setting-group">
-              <label>泵管增压阀:</label>
+              <label>二级气室(泵管)增压阀(Y):</label>
               <input v-model.number="config.switches.PumpTubePressurize" type="number" />
             </div>
             <div class="setting-group">
-              <label>泵管减压阀:</label>
+              <label>二级气室(泵管)减压阀(Y):</label>
               <input v-model.number="config.switches.PumpTubeDecompress" type="number" />
             </div>
             <div class="setting-group">
-              <label>抽泵管真空阀:</label>
+              <label>抽二级气室(泵管)真空阀(Y):</label>
               <input v-model.number="config.switches.PumpTubeVacuum" type="number" />
             </div>
             <div class="setting-group">
-              <label>靶室真空阀:</label>
+              <label>抽靶室真空阀(Y):</label>
               <input v-model.number="config.switches.TargetVacuum" type="number" />
             </div>
             <div class="setting-group">
-              <label>尾真空保护阀:</label>
+              <label>抽尾部真空保护阀(Y):</label>
               <input v-model.number="config.switches.TailVacuumProtect" type="number" />
             </div>
             <div class="setting-group">
-              <label>泵管保护阀:</label>
+              <label>泵管高精度传感器保护阀(Y):</label>
               <input v-model.number="config.switches.PumpTubeProtect" type="number" />
             </div>
             <div class="setting-group">
-              <label>发射阀:</label>
+              <label>系统发射阀(Y):</label>
               <input v-model.number="config.switches.FireSwitch" type="number" />
             </div>
             <div class="setting-group">
-              <label>系统减压阀:</label>
+              <label>系统释放阀(Y):</label>
               <input v-model.number="config.switches.SystemDecompress" type="number" />
             </div>
           </div>
@@ -252,11 +252,11 @@
           <h4 class="settings-section-title">真空泵点位配置</h4>
           <div class="settings-grid-2col">
             <div class="setting-group">
-              <label>靶室真空泵:</label>
+              <label>靶室真空泵(Y):</label>
               <input v-model.number="config.switches.TargetVacuumPump" type="number" />
             </div>
             <div class="setting-group">
-              <label>尾真空泵:</label>
+              <label>尾部真空泵(Y):</label>
               <input v-model.number="config.switches.TailVacuumPump" type="number" />
             </div>
           </div>
@@ -266,27 +266,27 @@
           <h4 class="settings-section-title">数据地址配置</h4>
           <div class="settings-grid-2col">
             <div class="setting-group">
-              <label>输入压力:</label>
+              <label>气路输入压力(D):</label>
               <input v-model.number="config.dataAddresses.InputPressure" type="number" />
             </div>
             <div class="setting-group">
-              <label>气瓶压力:</label>
+              <label>一级气室(气瓶)压力(D):</label>
               <input v-model.number="config.dataAddresses.CylinderPressure" type="number" />
             </div>
             <div class="setting-group">
-              <label>泵管压力:</label>
+              <label>二级气室(泵管)压力(D):</label>
               <input v-model.number="config.dataAddresses.PumpTubePressure" type="number" />
             </div>
             <div class="setting-group">
-              <label>泵管压力(高精度):</label>
+              <label>二级气室(泵管)高精度压力(D):</label>
               <input v-model.number="config.dataAddresses.PumpTubePressureHi" type="number" />
             </div>
             <div class="setting-group">
-              <label>靶室真空度:</label>
+              <label>靶室真空度(D):</label>
               <input v-model.number="config.dataAddresses.TargetVacuumDegree" type="number" />
             </div>
             <div class="setting-group">
-              <label>尾部真空度:</label>
+              <label>尾部真空度(D):</label>
               <input v-model.number="config.dataAddresses.TailVacuumDegree" type="number" />
             </div>
           </div>
@@ -324,6 +324,8 @@ import {
   ManualPumpTubeDecompress,
   ManualPressurize,
   ManualDecompress,
+  CloseSwitch,
+  OpenSwitch,
 } from '../../../wailsjs/go/backend/GasGun2Controller'
 
 const notify = inject('globalNotify')
@@ -338,6 +340,7 @@ const pumpTubeVacuumRunning = ref(false)
 const pumpTubePressureRunning = ref(false)
 const cylinderPressureRunning = ref(false)
 const isExternalTrigger = ref(false)
+const isResetting = ref(false)
 
 // 自动/手动模式切换
 const pumpTubeAutoMode = ref(false)
@@ -366,12 +369,17 @@ const pumpTubeLabel = ref('二级泵管气压 (MPa)')
 const pumpTubeMainValue = ref('0.00')
 const pumpTubeSubValue = ref('0.000')
 
-const PumpTubePrecision = (key) => {
+const PumpTubePrecision = async (key) => {
+
   if (key === 'high') {
+    await OpenSwitch('PumpTubeProtect')
     pumpTubeIsHighPrecision.value = true
   } else if (key === 'low') {
+    await CloseSwitch('PumpTubeProtect')
     pumpTubeIsHighPrecision.value = false
   }
+
+
   if (pumpTubeIsHighPrecision.value) {
     pumpTubeLabel.value = '二级泵管气压 (高精度)'
     // 交换数值：主值显示高精度，副值显示普通精度
@@ -566,10 +574,16 @@ const manualDecompress = async (enable) => {
 }
 
 const setTriggerMode = async (isExternal) => {
-  isExternalTrigger.value = isExternal
-  SetTriggerMode(isExternal)
-  addLog(`触发模式已切换为: ${isExternal ? '外触发' : '内触发'}`)
-  notify(`触发模式已切换为: ${isExternal ? '外触发' : '内触发'}`, "success", 2000)
+  try {
+    await SetTriggerMode(isExternal)
+    isExternalTrigger.value = isExternal
+    addLog(`触发模式已切换为: ${isExternal ? '外触发' : '内触发'}`)
+    notify(`触发模式已切换为: ${isExternal ? '外触发' : '内触发'}`, "success", 2000)
+
+  } catch (error) {
+    console.log(error)
+  }
+  
 }
 
 const prepareFire = async () => {
@@ -581,19 +595,37 @@ const prepareFire = async () => {
 }
 
 const handleFire = async () => {
-  const response = await Fire()
-  if (response.Status) {
+  const r1 = await PrepareFire()
+  if (r1.Status) {
+    addLog('准备发射完成')
+  }
+  const r2 = await Fire()
+  if (r2.Status) {
     addLog('发射指令已执行')
   }
-  notify(response.Message, response.Status ? "success" : "error", 2000)
+  notify(r2.Message, r2.Status ? "success" : "error", 2000)
 }
 
 const handleReset = async () => {
-  const response = await ResetSystem()
-  if (response.Status) {
-    addLog('系统恢复完成')
+  if (isResetting.value) {
+    notify('系统正在重置，请稍候...', "info", 2000)
+    const response = await ResetSystem(false)
+    if (response.Status) {
+      addLog('系统重置完成')
+      isResetting.value = false
+    }
+    notify(response.Message, response.Status ? "success" : "error", 2000)
+  }else {
+    notify('正在恢复系统，请稍候...', "info", 2000)
+    const response = await ResetSystem(true)
+    if (response.Status) {
+      addLog('系统恢复完成')
+      isResetting.value = true
+    }
+    notify(response.Message, response.Status ? "success" : "error", 2000)
   }
-  notify(response.Message, response.Status ? "success" : "error", 2000)
+  
+  
 }
 
 const saveSettings = async () => {
