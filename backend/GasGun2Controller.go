@@ -602,7 +602,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 		time.Sleep(1000 * time.Millisecond)
 
 		// 重新开启靶室真空泵
-		err = g.OpenSwitch("TargetVacuumPump")
+		err = g.OpenSwitch("SystemDecompress")
 		if err != nil {
 			return APIResponse{Status: false, Message: "开启靶室真空泵失败"}
 		}
@@ -625,7 +625,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 
 		time.Sleep(1000 * time.Millisecond)
 
-		err = g.CloseSwitch("TargetVacuumPump")
+		err = g.CloseSwitch("SystemDecompress")
 		if err != nil {
 			return APIResponse{Status: false, Message: "关闭目标真空泵阀失败"}
 		}
