@@ -115,10 +115,10 @@
           <div class="control-section">
             <h3 class="section-title"><span class="step-number">1</span>真空控制</h3>
             <div class="control-buttons">
-              <button class="ctrl-btn" :class="{ 'active': vacuumRunning }" @click="toggleVacuum">
+              <button class="ctrl-btn" :class="{ 'active': vacuumRunning }" :disabled="isResetting" @click="toggleVacuum">
                 {{ vacuumRunning ? '停止抽真空' : '开始抽真空' }}
               </button>
-              <button class="ctrl-btn" :class="{ 'active': pumpTubeVacuumRunning }" @click="togglePumpTubeVacuum">
+              <button class="ctrl-btn" :class="{ 'active': pumpTubeVacuumRunning }" :disabled="isResetting" @click="togglePumpTubeVacuum">
                 {{ pumpTubeVacuumRunning ? '停止抽泵管' : '开始抽泵管' }}
               </button>
             </div>
@@ -130,14 +130,14 @@
               <div class="pressure-input-group">
                 <label>气瓶压力 (MPa):</label>
                 <div class="pressure-input-row">
-                  <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" />
-                  <div class="toggle-switch" :class="{ 'active': cylinderAutoMode }" @click="toggleCylinderAutoMode">
+                  <input v-model.number="cylinderTargetPressure" type="number" step="0.1" class="pressure-input" :disabled="isResetting" />
+                  <div class="toggle-switch" :class="{ 'active': cylinderAutoMode, 'disabled': isResetting }" @click="!isResetting && toggleCylinderAutoMode">
                   </div>
                 </div>
                 <div class="manual-controls">
-                  <button class="mini-btn plus-btn" :disabled="cylinderAutoMode" 
+                  <button class="mini-btn plus-btn" :disabled="cylinderAutoMode || isResetting" 
                     @mousedown="manualPressurize(true)" @mouseup="manualPressurize(false)">加气</button>
-                  <button class="mini-btn minus-btn" :disabled="cylinderAutoMode" 
+                  <button class="mini-btn minus-btn" :disabled="cylinderAutoMode || isResetting" 
                     @mousedown="manualDecompress(true)" @mouseup="manualDecompress(false)">泄气</button>
                 </div>
               </div>
@@ -145,14 +145,14 @@
               <div class="pressure-input-group">
                 <label>泵管压力 (MPa):</label>
                 <div class="pressure-input-row">
-                  <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
-                  <div class="toggle-switch" :class="{ 'active': pumpTubeAutoMode }" @click="togglePumpTubeAutoMode">
+                  <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" :disabled="isResetting" />
+                  <div class="toggle-switch" :class="{ 'active': pumpTubeAutoMode, 'disabled': isResetting }" @click="!isResetting && togglePumpTubeAutoMode">
                   </div>
                 </div>
                 <div class="manual-controls">
-                  <button class="mini-btn plus-btn" :disabled="pumpTubeAutoMode" 
+                  <button class="mini-btn plus-btn" :disabled="pumpTubeAutoMode || isResetting" 
                     @mousedown="manualPumpTubePressurize(true)" @mouseup="manualPumpTubePressurize(false)">加气</button>
-                  <button class="mini-btn minus-btn" :disabled="pumpTubeAutoMode" 
+                  <button class="mini-btn minus-btn" :disabled="pumpTubeAutoMode || isResetting" 
                     @mousedown="manualPumpTubeDecompress(true)" @mouseup="manualPumpTubeDecompress(false)">泄气</button>
                 </div>
               </div>
@@ -165,18 +165,18 @@
             <div class="fire-controls">
               <div class="trigger-mode">
                 <label>触发模式:</label>
-                <button class="mode-btn" :class="{ 'active': !isExternalTrigger }" @click="setTriggerMode(false)">内触发</button>
-                <button class="mode-btn" :class="{ 'active': isExternalTrigger }" @click="setTriggerMode(true)">外触发</button>
+                <button class="mode-btn" :class="{ 'active': !isExternalTrigger }" :disabled="isResetting" @click="setTriggerMode(false)">内触发</button>
+                <button class="mode-btn" :class="{ 'active': isExternalTrigger }" :disabled="isResetting" @click="setTriggerMode(true)">外触发</button>
               </div>
               <!-- <button class="ctrl-btn fire-btn" @click="prepareFire">准备发射</button> -->
-              <button v-if="!isExternalTrigger" class="ctrl-btn fire-btn" @click="handleFire">立即发射</button>
+              <button v-if="!isExternalTrigger" class="ctrl-btn fire-btn" :disabled="isResetting" @click="handleFire">立即发射</button>
             </div>
           </div>
 
           <div class="control-section">
             <h3 class="section-title"><span class="step-number">4</span>系统控制</h3>
             <div class="control-buttons">
-              <button class="ctrl-btn reset-btn" @click="handleReset">{{ isResetting ? '恢复中...' : '系统恢复' }}</button>
+              <button class="ctrl-btn reset-btn" :class="{ 'active': isResetting }" @click="handleReset">{{ isResetting ? '恢复中...' : '系统恢复' }}</button>
             </div>
           </div>
         </section>
@@ -186,6 +186,17 @@
 
       
     </main>
+  </div>
+
+  <!-- 发射倒计时模态框 -->
+  <div v-if="showCountdown" class="countdown-overlay">
+    <div class="countdown-container">
+      <div class="countdown-ring">
+        <div class="countdown-number">{{ countdown }}</div>
+      </div>
+      <div class="countdown-text">发射倒计时</div>
+      <div class="countdown-hint">按下任意键取消发射</div>
+    </div>
   </div>
 
   <div v-if="showSettings" class="modal-overlay">
@@ -341,6 +352,10 @@ const pumpTubePressureRunning = ref(false)
 const cylinderPressureRunning = ref(false)
 const isExternalTrigger = ref(false)
 const isResetting = ref(false)
+
+// 发射倒计时
+const showCountdown = ref(false)
+const countdown = ref(3)
 
 // 自动/手动模式切换
 const pumpTubeAutoMode = ref(false)
@@ -586,19 +601,72 @@ const setTriggerMode = async (isExternal) => {
   
 }
 
-const prepareFire = async () => {
-  const response = await PrepareFire()
-  if (response.Status) {
-    addLog('准备发射完成')
-  }
-  notify(response.Message, response.Status ? "success" : "error", 2000)
-}
+
+let countdownInterval = null
+let countdownCancelCallback = null
 
 const handleFire = async () => {
-  const r1 = await PrepareFire()
+  // 显示倒计时模态框
+  showCountdown.value = true
+  countdown.value = 3
+  
+  // 在倒计时开始时立即执行准备发射
+  const r1 = await StopAutoVacuum()
   if (r1.Status) {
     addLog('准备发射完成')
+    vacuumRunning.value = false
+    notify(r1.Message, r1.Message, 2000)
+  } else {
+    // 如果准备发射失败，隐藏倒计时并提示
+    showCountdown.value = false
+    notify(r1.Message, "error", 2000)
+    return
   }
+  
+  // 定义取消发射回调
+  countdownCancelCallback = () => {
+    cancelFire()
+  }
+  
+  // 添加键盘事件监听
+  window.addEventListener('keydown', countdownCancelCallback)
+  
+  // 倒计时动画
+  countdownInterval = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownInterval)
+      // 移除键盘事件监听
+      window.removeEventListener('keydown', countdownCancelCallback)
+      countdownCancelCallback = null
+      // 倒计时结束，执行发射
+      executeFire()
+    }
+  }, 1000)
+}
+
+const cancelFire = () => {
+  // 清除倒计时
+  if (countdownInterval) {
+    clearInterval(countdownInterval)
+    countdownInterval = null
+  }
+  // 移除键盘事件监听
+  if (countdownCancelCallback) {
+    window.removeEventListener('keydown', countdownCancelCallback)
+    countdownCancelCallback = null
+  }
+  // 隐藏倒计时模态框
+  showCountdown.value = false
+  // 通知用户发射已取消
+  addLog('发射已取消')
+  notify('发射已取消', "info", 2000)
+}
+
+const executeFire = async () => {
+  // 隐藏倒计时模态框
+  showCountdown.value = false
+  
   const r2 = await Fire()
   if (r2.Status) {
     addLog('发射指令已执行')
@@ -999,12 +1067,14 @@ onUnmounted(() => {
 
 .control-section {
   background: #ffffff;
-  border-radius: 12px;
-  padding: 10px;
-  margin-bottom: 10px;
+  border-radius: clamp(8px, 1.5vw, 12px);
+  padding: clamp(8px, 2vw, 12px);
+  margin-bottom: clamp(8px, 1.5vw, 12px);
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   border: 1px solid #f0f0f0;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .control-section:hover {
@@ -1017,19 +1087,19 @@ onUnmounted(() => {
 }
 
 .section-title {
-  font-size: 16px;
+  font-size: clamp(12px, 2.5vw, 16px);
   font-weight: 600;
   color: #1a1c24;
-  margin-bottom: 16px;
+  margin-bottom: clamp(10px, 2vw, 14px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(6px, 1.5vw, 10px);
 }
 
 .section-title::before {
   content: '';
   width: 4px;
-  height: 18px;
+  height: clamp(14px, 2.5vw, 18px);
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   border-radius: 2px;
 }
@@ -1038,11 +1108,11 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: clamp(18px, 3vw, 22px);
+  height: clamp(18px, 3vw, 22px);
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   color: white;
-  font-size: 12px;
+  font-size: clamp(10px, 1.8vw, 12px);
   font-weight: 600;
   border-radius: 50%;
   flex-shrink: 0;
@@ -1050,19 +1120,20 @@ onUnmounted(() => {
 
 .control-buttons {
   display: flex;
-  gap: 8px;
+  gap: clamp(4px, 1vw, 8px);
   flex-wrap: wrap;
 }
 
 .ctrl-btn {
   flex: 1;
-  min-width: calc(50% - 4px);
-  padding: 10px 12px;
-  border-radius: 6px;
+  min-width: clamp(60px, 45%, calc(50% - 4px));
+  max-width: 100%;
+  padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px);
+  border-radius: clamp(4px, 1vw, 6px);
   border: 1px solid #dee2e6;
   background: #f8f9fa;
   font-weight: 500;
-  font-size: 12px;
+  font-size: clamp(10px, 2vw, 12px);
   cursor: pointer;
   transition: all 0.2s;
   box-sizing: border-box;
@@ -1095,6 +1166,18 @@ onUnmounted(() => {
   background: #495057;
   color: white;
   border: none;
+  transition: all 0.3s ease;
+}
+
+.ctrl-btn.reset-btn.active {
+  background: #20c997;
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(32, 201, 151, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(32, 201, 151, 0); }
 }
 
 .pressure-controls {
@@ -1114,24 +1197,32 @@ onUnmounted(() => {
 }
 
 .toggle-switch {
-  width: 52px;
-  height: 28px;
+  width: clamp(44px, 10vw, 52px);
+  height: clamp(24px, 5vw, 28px);
   background: #ffffff;
-  border-radius: 14px;
+  border-radius: 50%;
+  border-radius: clamp(12px, 2.5vw, 14px);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
   border: 2px solid #e8eaed;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .toggle-switch::before {
   content: '手动';
   position: absolute;
-  right: 3px;
+  right: clamp(2px, 0.5vw, 3px);
   top: 50%;
   transform: translateY(-50%);
-  font-size: 11px;
+  font-size: clamp(9px, 2vw, 11px);
   font-weight: 600;
   color: #4facfe;
   transition: all 0.3s ease;
@@ -1140,8 +1231,8 @@ onUnmounted(() => {
 .toggle-switch::after {
   content: '';
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: clamp(20px, 4.5vw, 24px);
+  height: clamp(20px, 4.5vw, 24px);
   background: linear-gradient(145deg, #4facfe, #00f2fe);
   border-radius: 50%;
   top: 1px;
@@ -1170,19 +1261,22 @@ onUnmounted(() => {
 
 .manual-controls {
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  gap: clamp(4px, 1vw, 6px);
+  margin-top: clamp(4px, 1vw, 6px);
 }
 
 .mini-btn {
   flex: 1;
-  padding: 6px;
+  min-width: clamp(40px, 25%, 80px);
+  max-width: 100%;
+  padding: clamp(4px, 1vw, 6px);
   border: none;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: clamp(3px, 0.8vw, 4px);
+  font-size: clamp(10px, 1.8vw, 12px);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .mini-btn:disabled {
@@ -1269,6 +1363,96 @@ onUnmounted(() => {
 @keyframes blink { 
   0%, 100% { opacity: 1; } 
   50% { opacity: 0.3; } 
+}
+
+/* 发射倒计时模态框 */
+.countdown-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.3s ease;
+}
+
+.countdown-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.countdown-ring {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 50%, #d63031 100%);
+  box-shadow: 
+    0 0 30px rgba(238, 90, 90, 0.6),
+    0 0 60px rgba(238, 90, 90, 0.4),
+    inset 0 2px 10px rgba(255, 255, 255, 0.2),
+    inset 0 -2px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 
+      0 0 30px rgba(238, 90, 90, 0.6),
+      0 0 60px rgba(238, 90, 90, 0.4),
+      inset 0 2px 10px rgba(255, 255, 255, 0.2),
+      inset 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 
+      0 0 40px rgba(238, 90, 90, 0.8),
+      0 0 80px rgba(238, 90, 90, 0.5),
+      inset 0 2px 10px rgba(255, 255, 255, 0.2),
+      inset 0 -2px 10px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.countdown-number {
+  font-size: 80px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 
+    0 2px 10px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 255, 255, 0.5);
+  animation: numberScale 1s ease-in-out infinite;
+}
+
+@keyframes numberScale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.countdown-text {
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 4px;
+}
+
+.countdown-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+  animation: blink 1s ease-in-out infinite;
+}
+
+/* 禁用状态样式 */
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
 }
 
 .log-scroll-area::-webkit-scrollbar { width: 4px; }

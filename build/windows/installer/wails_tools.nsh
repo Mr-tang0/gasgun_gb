@@ -11,10 +11,10 @@
     !define INFO_COMPANYNAME "PIMS"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "GasGun"
+    !define INFO_PRODUCTNAME "力学实验室轻气炮系统"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.0.0"
+    !define INFO_PRODUCTVERSION "1.0.1"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright........."

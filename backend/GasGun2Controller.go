@@ -566,23 +566,24 @@ func (g *GasGun2Controller) PrepareFire() APIResponse {
 	if err != nil {
 		return APIResponse{Status: false, Message: "关闭靶室真空泵失败"}
 	}
+	return APIResponse{Status: true, Message: "准备发射完成"}
 
-	time.Sleep(500 * time.Millisecond)
+	// time.Sleep(500 * time.Millisecond)
 
-	// 判断是内触发还是外触发，外触发时不打开发射阀
-	if !g.isExternalTrigger {
-		// 内触发：打开发射阀
-		err = g.OpenSwitch("FireSwitch")
-		if err != nil {
-			return APIResponse{Status: false, Message: "打开发射阀失败"}
-		}
-		return APIResponse{Status: true, Message: "准备发射完成（内触发模式，发射阀已打开）"}
-	} else {
-		return APIResponse{Status: true, Message: "准备发射完成（外触发模式，等待外部触发信号）"}
-	}
+	// // 判断是内触发还是外触发，外触发时不打开发射阀
+	// if !g.isExternalTrigger {
+	// 	// 内触发：打开发射阀
+	// 	err = g.OpenSwitch("FireSwitch")
+	// 	if err != nil {
+	// 		return APIResponse{Status: false, Message: "打开发射阀失败"}
+	// 	}
+	// 	return APIResponse{Status: true, Message: "准备发射完成（内触发模式，发射阀已打开）"}
+	// } else {
+	// 	return APIResponse{Status: true, Message: "准备发射完成（外触发模式，等待外部触发信号）"}
+	// }
 }
 
-// 6. 恢复：打开减压阀、泵管减压阀、重新开启靶室真空泵
+// 6. 恢复：true:打开减压阀、泵管减压阀、系统减压阀 false:关闭减压阀、泵管减压阀、系统减压阀
 func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 	if reset {
 		// 打开减压阀
@@ -591,7 +592,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 			return APIResponse{Status: false, Message: "打开减压阀失败"}
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		// 打开泵管减压阀
 		err = g.OpenSwitch("PumpTubeDecompress")
@@ -599,7 +600,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 			return APIResponse{Status: false, Message: "打开泵管减压阀失败"}
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		// 重新开启靶室真空泵
 		err = g.OpenSwitch("SystemDecompress")
@@ -615,7 +616,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 			return APIResponse{Status: false, Message: "关闭减压阀失败"}
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		// 关闭泵管减压阀
 		err = g.CloseSwitch("PumpTubeDecompress")
@@ -623,7 +624,7 @@ func (g *GasGun2Controller) ResetSystem(reset bool) APIResponse {
 			return APIResponse{Status: false, Message: "关闭泵管减压阀失败"}
 		}
 
-		time.Sleep(1000 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 
 		err = g.CloseSwitch("SystemDecompress")
 		if err != nil {
