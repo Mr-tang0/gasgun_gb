@@ -1,360 +1,366 @@
-<script setup>
-import ChooseUtil from './components/ChooseUtil.vue'
-import Gasgun1 from './components/gasgun/Gasgun1.vue'
-import Gasgun2 from './components/gasgun/Gasgun2.vue'
-import NormalHopkinson from './components/gasgun/NormalHopkinson.vue'
-import { ref, provide, onMounted } from 'vue'
-import { Quit, BrowserOpenURL } from '../wailsjs/runtime' // 导入 Wails 退出函数
-import MessageContainer from './components/utils/MessageContainer.vue'
-import Update from './components/utils/update.vue'
-
-import { CallGasgun1 ,
-    CallNormalHopkinson,
-    APIUpdate,
-    CallGasGun2,
-} from '../wailsjs/go/main/APP'
-
-// 状态声明
-const chooseUitls = ref(true)
-const Gasgun1Enable = ref(false)
-const Gasgun2Enable = ref(false)
-const NormalHopkinsonEnable = ref(false)
-const showUpdateModal = ref(false) // 默认不显示，检测到更新后再弹出
-
-const msgBoxRef = ref(null)
-
-const notify = (content, type = 'info', duration = 1000) => {
-  msgBoxRef.value?.addMessage(content, type, duration)
-}
-
-provide('globalNotify', notify)
-
-const updateInfo = ref({
-  tagName: '无',
-  htmlUrl: 'https://github.com'
-})
-
-onMounted(async() => {
-  try {
-    const release = await APIUpdate()
-    if (release) {
-        updateInfo.value.tagName = release.tag_name
-        updateInfo.value.htmlUrl = release.html_url
-        if (release.assets.length > 0) {
-            updateInfo.value.htmlUrl = release.assets[0].browser_download_url
-        }
-        // 发现更新时，显示更新模态框
-        showUpdateModal.value = true
-    }
-  } catch (e) {
-    console.error("检查更新失败", e)
-  }
-})
-
-// 更新处理函数
-const handleUpdate = () => {
-    if (updateInfo.value.htmlUrl) {
-        BrowserOpenURL(updateInfo.value.htmlUrl) 
-        showUpdateModal.value = false;
-    }
-};
-
-const onSelected = async(type) => {
-  chooseUitls.value = false
-  
-  if (type === 'hopkinson') {
-    NormalHopkinsonEnable.value = true
-    await CallNormalHopkinson()
-  }
-  else if (type === 'gasgun1') {
-    Gasgun1Enable.value = true
-    await CallGasgun1()
-  }
-  else if (type === 'gasgun2') {
-    Gasgun2Enable.value = true
-    await CallGasGun2()
-
-  }
-  console.log('用户选择了:', type)
-}
-
-const onExit = () => {
-  Quit() 
-}
-</script>
-
 <template>
-  <ChooseUtil 
-    v-if="chooseUitls" 
-    @confirm="onSelected" 
-    @exit="onExit"
-  />
+  <div class="main-window">
+    <div class="title-bar" @dblclick="WindowToggleMaximise">
 
-  <NormalHopkinson v-if="NormalHopkinsonEnable" />
+      <div class="logo"> 
+        <img v-if="User=='NIMTE'" src="./assets/images/logo/nimte.png" width="100" height="25">
+        <img v-if="User=='PIMS'"  src="./assets/images/logo/pims.png" width="100" height="25">
+        <!-- <img v-if="User=='ADMIN'" src="./assets/images/admin/logo.png" width="100" height="25"> -->
+      </div>
 
-  <Gasgun1 v-if="Gasgun1Enable" />
+      <div class="title">力学实验室控制系统</div>
+      <div class="sub-title" v-if="currentDevice">({{ currentDeviceName }})</div>
 
-  <Gasgun2 v-if="Gasgun2Enable" />
+      <div class='window-actions'>
+        <button class="window-btn switch-device-btn" type="button" title="切换设备" @click="showDeviceModal = true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 7v6h-6"/>
+                <path d="M3 17v-6h6"/>
+                <path d="M21 13a9 9 0 0 0-15-6.7L3 13"/>
+                <path d="M3 11a9 9 0 0 0 15 6.7L21 11"/>
+            </svg>
+        </button>
 
-  <MessageContainer ref="msgBoxRef" />
+        <button class="window-btn alarm-history-btn" type="button" title="历史报警消息" @click="alarmHistoryVisible = true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+        </button>
 
-  <!-- 传送更新模态框到 body -->
-  <teleport to="body">
-    <transition name="modal">
-      <div v-if="showUpdateModal" class="modal-overlay" @click.self="showUpdateModal = false">
-        <div class="modal-container update-modal">
-          <div class="modal-header">
-            <h3 class="modal-title">发现新版本</h3>
-            <button class="modal-close" @click="showUpdateModal = false">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="update-content">
-              <div class="update-icon">
-                <svg viewBox="-2 -2 28 28" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                  <path d="M3 3v6h6"/>
-                  <path d="M3 16a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
-                  <path d="M16 17h6v6"/>
-                </svg>
-              </div>
-              <div class="update-info">
-                <p class="update-version">新版本: <strong>{{ updateInfo.tagName }}</strong></p>
-                <p class="update-desc">发现应用程序有新版本可用，建议及时升级以获得更好的体验和稳定性。</p>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" @click="showUpdateModal = false">
-              稍后更新
-            </button>
-            <button class="btn btn-primary" @click="handleUpdate">
-              立即更新
-            </button>
+        <button class="window-btn settings-btn" type="button" title="系统设置" @click="ShowSetModal = true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </button>
+
+        <span class="title-divider"></span>
+
+        <button class="window-btn minimize-btn" type="button" title="最小化" @click="WindowMinimise">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="4" y1="12" x2="22" y2="12" />
+          </svg>
+        </button>
+        <button class="window-btn maximize-btn" type="button" title="最大化" @click="WindowToggleMaximise">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="5" y="5" width="17" height="17" rx="2" />
+          </svg>
+        </button>
+        <button class="window-btn close-btn" type="button" title="关闭" @click="Quit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="20" y1="4" x2="4" y2="20" />
+            <line x1="4" y1="4" x2="20" y2="20" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="content">
+      <XINJIE_Gasgun1 v-if="currentDevice === 'xinjie-gasgun1'" />
+      <XINJIE_Gasgun2 v-if="currentDevice === 'xinjie-gasgun2'" />
+    </div>
+
+    <div v-if="currentDevice === 'xinjie-gasgun2'">
+      <XINJIE_Gasgun2_SetModal v-model:show="ShowSetModal" @save="ShowSetModal.value = false" />
+    </div>
+    <div v-if="currentDevice === 'xinjie-gasgun1'">      
+      <XINJIE_Gasgun1_SetModal v-model:show="ShowSetModal" @save="ShowSetModal.value = false" />
+    </div>
+    
+
+    <!-- 设备选择模态框 -->
+    <div class="modal-mask" v-if="showDeviceModal" @click.self="showDeviceModal = false">
+      <div class="modal-container">
+        <h2 class="modal-title">设备选择</h2>
+
+        <div class="options-group">
+          <div
+            v-for="opt in Devices[User]"
+            :key="opt.id"
+            :class="['option-item', { active: tempSelected === opt.id }]"
+            @click="tempSelected = opt.id"
+          >
+            <div class="radio-dot"></div>
+            <span class="option-text">{{ opt.name }}</span>
           </div>
         </div>
+
+        <div class="button-group">
+          <button class="btn btn-exit" @click="Quit">退出软件</button>
+          <button class="btn btn-confirm" :disabled="!tempSelected" @click="handleDeviceConfirm">确认进入</button>
+        </div>
       </div>
-    </transition>
-  </teleport>
+    </div>
+  </div>
 </template>
 
-<style>
-.main-content {
-  padding: 20px;
-  animation: fadeIn 0.5s ease;
+
+<script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { WindowMinimise, WindowToggleMaximise, WindowMaximise, Quit } from '../wailsjs/runtime/runtime'
+
+
+
+import XINJIE_Gasgun1 from './components/xinjiegasgun1/GasGunWindow.vue'
+import XINJIE_Gasgun2 from './components/xinjiegasgun2/GasGunWindow.vue'
+import XINJIE_Gasgun1_SetModal from './components/xinjiegasgun1/SystemSetModal.vue'
+import XINJIE_Gasgun2_SetModal from './components/xinjiegasgun2/SystemSetModal.vue'
+
+
+
+const ShowSetModal = ref(false)
+const showDeviceModal = ref(true)
+const tempSelected = ref('xinjie-gasgun1')
+const currentDevice = ref('xinjie-gasgun1')
+
+const User = ref('PIMS')
+
+const Devices = ref({
+    PIMS:[
+      { id: 'xinjie-gasgun1', name: '一级气炮' },
+      { id: 'xinjie-gasgun2', name: '二级气炮' },
+      { id: 'gongbei-hopkinson', name: '常温Hopkinson杆' },
+    ],
+    NIMTE:[
+      { id: 'xinjie-gasgun1', name: '一级气炮' },
+    ],
+    SWJTU:[
+      { id: 'swjtu-gasgun1', name: '一级气炮' },
+    ],
+    HEPS:[
+      { id: 'heps-gasgun1', name: '一级气炮' },
+    ]
+  }
+)
+
+
+const currentDeviceName = computed(() => {
+  const list = Devices.value[User.value] || []
+  const opt = list.find(o => o.id === currentDevice.value)
+  return opt ? opt.name : ''
+})
+
+const handleDeviceConfirm = () => {
+  if (tempSelected.value) {
+    currentDevice.value = tempSelected.value
+    showDeviceModal.value = false
+  }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+onMounted(() => {
+  WindowMaximise()
+})
+
+onUnmounted(() => {
+})
+
+
+
+</script>
+
+<style scoped>
+.main-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 遮罩层 */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    backdrop-filter: blur(4px);
+/* ===== 标题栏 ===== */
+.title-bar {
+  display: flex;
+  width: 100%;
+  height: 50px;
+  align-items: center;
+  gap: 24px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  background-color: #4e69b5;
+  --wails-draggable: drag;
 }
 
-/* 模态框容器 */
-.modal-container {
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%);
-    border-radius: 16px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(148, 163, 184, 0.1);
-    overflow: hidden;
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-/* 更新模态框独有尺寸 */
-.update-modal {
-    width: 420px;
-    max-width: 90%;
-    border: 1px solid rgba(148, 163, 184, 0.15);
+.title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #ffffff;
+}
+.sub-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #ffffff;
 }
 
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
+.window-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-left: auto;
+  --wails-draggable: no-drag;
 }
 
-.modal-title {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: #cbd5e1;
-}
-
-.modal-close {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 8px;
-    transition: all 0.2s;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-close:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f1f5f9;
-}
-
-.modal-close svg {
-    width: 18px;
+.title-divider {
+    width: 1px;
     height: 18px;
-}
-
-.modal-body {
-    padding: 20px;
-}
-
-/* 新版本详情区域布局 */
-.update-content {
-    display: flex;
-    align-items: flex-start;
-    gap: 16px;
-}
-
-/* 图标圆圈与动画 */
-.update-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 66px;
-    height: 66px;
-    background: rgba(59, 130, 246, 0.12);
-    color: #3b82f6;
-    border-radius: 12px;
+    background: #94a3b8;
+    margin: 0 6px;
     flex-shrink: 0;
 }
 
-.update-icon svg {
-    width: 34px;
-    height: 34px;
-    animation: spin-slow 12s linear infinite; /* 缓慢旋转模拟同步更新质感 */
+.window-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  padding: 0;
 }
 
-@keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+.window-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
-.update-info {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.window-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  transform: scale(1.1);
 }
 
-.update-version {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-    color: #f1f5f9;
+.window-btn.close-btn:hover {
+  background: rgba(80, 63, 63, 0.2);
+  color: #ef4444;
 }
 
-.update-version strong {
-    color: #3b82f6;
-    background: rgba(59, 130, 246, 0.15);
-    padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 13px;
-    margin-left: 6px;
+/* ===== 内容区 ===== */
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  background-color: #edf1f8;
+  min-height: 0;
 }
 
-.update-desc {
-    margin: 0;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #94a3b8;
+/* ===== 设备选择模态框 ===== */
+.modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  backdrop-filter: blur(4px);
+  z-index: 9999;
 }
 
-.modal-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 16px 20px;
+.modal-container {
+  background: #ffffff;
+  width: 350px;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  text-align: center;
 }
 
-/* 通用按钮系统定义 */
+.modal-title {
+  margin-bottom: 25px;
+  color: #333;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.options-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.option-item {
+  padding: 15px;
+  border: 2px solid #eee;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.option-item:hover {
+  background: #f8f9fa;
+  border-color: #007aff;
+}
+
+.option-item.active {
+  background: #eef6ff;
+  border-color: #007aff;
+}
+
+.radio-dot {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #ddd;
+  border-radius: 50%;
+  margin-right: 15px;
+  position: relative;
+}
+
+.active .radio-dot {
+  border-color: #007aff;
+  background: #007aff;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+
+.option-text {
+  font-size: 16px;
+  color: #444;
+  font-weight: 500;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+}
+
 .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    outline: none;
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s;
 }
 
-.btn-secondary {
-    background: rgba(148, 163, 184, 0.1);
-    color: #cbd5e1;
+.btn-confirm {
+  background: #007aff;
+  color: white;
 }
 
-.btn-secondary:hover {
-    background: rgba(148, 163, 184, 0.18);
-    color: #f1f5f9;
+.btn-confirm:disabled {
+  background: #ccc;
+  cursor: not-allowed;
 }
 
-.btn-primary {
-    background: #2563eb;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+.btn-exit {
+  background: #f2f2f7;
+  color: #ff3b30;
 }
 
-.btn-primary:hover {
-    background: #1d4ed8;
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-    transform: translateY(-1px);
+.btn:hover:not(:disabled) {
+  opacity: 0.8;
 }
 
-.btn-primary:active {
-    transform: translateY(0);
-}
-
-/* 模态框 Transition 动画样式 */
-.modal-enter-active,
-.modal-leave-active {
-    transition: opacity 0.3s ease;
-}
-
-.modal-enter-from,
-.modal-leave-to {
-    opacity: 0;
-}
-
-.modal-enter-active .modal-container,
-.modal-leave-active .modal-container {
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
-}
-
-.modal-enter-from .modal-container,
-.modal-leave-to .modal-container {
-    transform: scale(0.9) translateY(12px);
-    opacity: 0;
-}
 </style>

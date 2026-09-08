@@ -2,7 +2,8 @@ package main
 
 import (
 	"embed"
-	"gasgun_gb/backend"
+	xinjiegasgun1 "gasgun_gb/services/xinjie_gasgun1"
+	xinjiegasgun2 "gasgun_gb/services/xinjie_gasgun2"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -15,14 +16,10 @@ var assets embed.FS
 func main() {
 	// Create an instance of the app structure
 
-	gasgun1 := backend.NewGasGun1Controller()
-	gasgun2 := backend.NewGasGun2Controller()
-	normalHopkinson := backend.NewNormalHopkinsonContoller()
+	XinjieGasgun1 := xinjiegasgun1.NewXinjieGasGun1()
+	XinjieGasgun2 := xinjiegasgun2.NewXinjieGasGun2()
 
-	app := NewApp()
-	app.gasgun1 = gasgun1
-	app.gasgun2 = gasgun2
-	app.normalHopkinson = normalHopkinson
+	app := NewApp(XinjieGasgun1, XinjieGasgun2)
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -32,13 +29,13 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
+		Frameless:        true,
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,
-			gasgun1,
-			gasgun2,
-			normalHopkinson,
+			XinjieGasgun1,
+			XinjieGasgun2,
 		},
 	})
 

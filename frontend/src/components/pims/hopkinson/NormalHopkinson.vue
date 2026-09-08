@@ -163,7 +163,7 @@
 <script setup>
 /* ... script 逻辑保持不变，确保导入和变量已定义 ... */
 import { ref, reactive, onMounted, onUnmounted, inject} from 'vue'
-import { EventsOn, EventsOff } from '../../../wailsjs/runtime/runtime'
+import { EventsOn, EventsOff } from '../../../../wailsjs/runtime/runtime'
 import { 
     ConnectPLC, 
     DisconnectPLC, 
@@ -172,7 +172,7 @@ import {
     FireSwitch,
     SaveConfig,
     GetConfig,
-} from '../../../wailsjs/go/backend/NormalHopkinsonContoller'
+} from '../../../../wailsjs/go/backend/NormalHopkinsonContoller'
 
 const metrics = reactive([
   { label: '供气压力', value: '0.00', unit: 'MPa' },

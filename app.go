@@ -4,19 +4,28 @@ import (
 	"context"
 	"fmt"
 	"gasgun_gb/backend"
+	xinjiegasgun1 "gasgun_gb/services/xinjie_gasgun1"
+	xinjiegasgun2 "gasgun_gb/services/xinjie_gasgun2"
 )
 
 type App struct {
 	ctx             context.Context
-	gasgun1         *backend.GasGun1Controller
-	gasgun2         *backend.GasGun2Controller
+	xinjieGasgun1   *xinjiegasgun1.XinjieGasGun1
+	xinjieGasgun2   *xinjiegasgun2.XinjieGasGun2
 	normalHopkinson *backend.NormalHopkinsonContoller
 
 	updater *backend.UpdateService
 }
 
-func NewApp() *App {
-	return &App{}
+func NewApp(xinjieGasgun1 *xinjiegasgun1.XinjieGasGun1, xinjieGasgun2 *xinjiegasgun2.XinjieGasGun2) *App {
+	app := &App{
+		ctx:           context.Background(),
+		xinjieGasgun1: xinjieGasgun1,
+		xinjieGasgun2: xinjieGasgun2,
+	}
+	app.xinjieGasgun1.Startup(app.ctx)
+	app.xinjieGasgun2.Startup(app.ctx)
+	return app
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -38,19 +47,4 @@ func (a *App) APIUpdate() backend.GitHubRelease {
 
 func (a *App) GetCachedRelease() backend.GitHubRelease {
 	return a.updater.GetCachedRelease()
-}
-
-func (a *App) CallGasgun1() {
-	fmt.Println("Call Gasgun1")
-	a.gasgun1.Init(a.ctx)
-}
-
-func (a *App) CallNormalHopkinson() {
-	fmt.Println("Call NormalHopkinson")
-	a.normalHopkinson.Init(a.ctx)
-}
-
-func (a *App) CallGasGun2() {
-	fmt.Println("Call GasGun2")
-	a.gasgun2.Init(a.ctx)
 }

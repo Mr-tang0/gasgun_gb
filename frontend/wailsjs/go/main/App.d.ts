@@ -4,10 +4,4 @@ import {backend} from '../models';
 
 export function APIUpdate():Promise<backend.GitHubRelease>;
 
-export function CallGasGun2():Promise<void>;
-
-export function CallGasgun1():Promise<void>;
-
-export function CallNormalHopkinson():Promise<void>;
-
 export function GetCachedRelease():Promise<backend.GitHubRelease>;

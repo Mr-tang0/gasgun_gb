@@ -1,8 +1,9 @@
 module gasgun_gb
 
-go 1.23
+go 1.26.4
 
 require (
+	github.com/Mr-tang0/PIMSGoMod v1.0.1
 	github.com/goburrow/modbus v0.1.0
 	github.com/wailsapp/wails/v2 v2.11.0
 )
@@ -34,7 +35,7 @@ require (
 	github.com/wailsapp/mimetype v1.4.1 // indirect
 	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 )
 

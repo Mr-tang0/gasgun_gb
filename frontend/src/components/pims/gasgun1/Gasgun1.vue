@@ -116,7 +116,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, onUnmounted, inject} from 'vue'
-import { EventsOn, EventsOff } from '../../../wailsjs/runtime/runtime'
+import { EventsOn, EventsOff } from '../../../../wailsjs/runtime/runtime'
 import { 
     ConnectPLC, 
     DisconnectPLC,
@@ -127,7 +127,7 @@ import {
     TailVacuumSwitch,
     FireSwitch,
     AutoPressurize,
- } from '../../../wailsjs/go/backend/GasGun1Controller'
+ } from '../../../../wailsjs/go/backend/GasGun1Controller'
 
 
 const notify = inject('globalNotify')

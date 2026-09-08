@@ -6,18 +6,6 @@ export function APIUpdate() {
   return window['go']['main']['App']['APIUpdate']();
 }
 
-export function CallGasGun2() {
-  return window['go']['main']['App']['CallGasGun2']();
-}
-
-export function CallGasgun1() {
-  return window['go']['main']['App']['CallGasgun1']();
-}
-
-export function CallNormalHopkinson() {
-  return window['go']['main']['App']['CallNormalHopkinson']();
-}
-
 export function GetCachedRelease() {
   return window['go']['main']['App']['GetCachedRelease']();
 }

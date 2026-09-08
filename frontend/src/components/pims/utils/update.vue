@@ -17,7 +17,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { BrowserOpenURL } from '../../../wailsjs/runtime'
+import { BrowserOpenURL } from '../../../../wailsjs/runtime/runtime'
 
 const props = defineProps({
 })
