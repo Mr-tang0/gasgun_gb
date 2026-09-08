@@ -2,7 +2,10 @@ package xinjiegasgun2
 
 // 监控数据结构体
 type GasGun2Heartbeat struct {
-	Running            bool    `json:"Running"`            //是否连接
+	Running bool   `json:"Running"` //是否连接
+	Time    string `json:"Time"`
+	Alarm   string `json:"Alarm"`
+
 	InputPressure      float32 `json:"InputPressure"`      //输入压力
 	CylinderPressure   float32 `json:"CylinderPressure"`   //气瓶压力（一级气室）
 	PumpTubePressure   float32 `json:"PumpTubePressure"`   //泵管压力（二级气室）
@@ -10,6 +13,8 @@ type GasGun2Heartbeat struct {
 
 	TargetVacuumDegree float32 `json:"TargetVacuumDegree"` //靶室真空度
 	TailVacuumDegree   float32 `json:"TailVacuumDegree"`   //尾部真空度
+
+	Output map[string]bool `json:"Output"` //各阀门状态
 }
 
 // 开关地址配置

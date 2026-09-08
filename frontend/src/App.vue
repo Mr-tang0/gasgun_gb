@@ -61,12 +61,8 @@
       <XINJIE_Gasgun2 v-if="currentDevice === 'xinjie-gasgun2'" />
     </div>
 
-    <div v-if="currentDevice === 'xinjie-gasgun2'">
-      <XINJIE_Gasgun2_SetModal v-model:show="ShowSetModal" @save="ShowSetModal.value = false" />
-    </div>
-    <div v-if="currentDevice === 'xinjie-gasgun1'">      
-      <XINJIE_Gasgun1_SetModal v-model:show="ShowSetModal" @save="ShowSetModal.value = false" />
-    </div>
+    <XINJIE_Gasgun2_SetModal v-if="currentDevice==='xinjie-gasgun2'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    <XINJIE_Gasgun1_SetModal v-if="currentDevice==='xinjie-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
     
 
     <!-- 设备选择模态框 -->

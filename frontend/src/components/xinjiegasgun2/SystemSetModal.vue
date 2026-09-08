@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @click.self="close">
+  <div v-if="show" class="modal-overlay" @click.self="close">
     <div class="modal-content config-modal">
       <div class="modal-header">
         <h3>系统配置</h3>
@@ -141,9 +141,13 @@ const config = reactive({
   }
 })
 
-const emit = defineEmits([ 'save'])
+defineProps({
+  show: { type: Boolean, default: false },
+})
 
-const close = () => emit('save', false)
+const emit = defineEmits(['update:show', 'save'])
+
+const close = () => emit('update:show', false)
 </script>
 
 <style scoped>
