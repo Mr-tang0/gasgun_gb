@@ -1,5 +1,6 @@
 <template>
-  <div class="main-window">
+  <!-- @contextmenu.prevent -->
+  <div class="main-window" >
     <div class="title-bar" @dblclick="WindowToggleMaximise">
 
       <div class="logo"> 
@@ -12,7 +13,7 @@
       <div class="sub-title" v-if="currentDevice">({{ currentDeviceName }})</div>
 
       <div class='window-actions'>
-        <button class="window-btn switch-device-btn" type="button" title="切换设备" @click="showDeviceModal = true">
+        <button v-if="User=='PIMS'" class="window-btn switch-device-btn" type="button" title="切换设备" @click="showDeviceModal = true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 7v6h-6"/>
                 <path d="M3 17v-6h6"/>
@@ -59,14 +60,16 @@
     <div class="content">
       <XINJIE_Gasgun1 v-if="currentDevice === 'xinjie-gasgun1'" />
       <XINJIE_Gasgun2 v-if="currentDevice === 'xinjie-gasgun2'" />
+      <HEPS_Gasgun1 v-if="currentDevice === 'heps-gasgun1'" />
     </div>
 
     <XINJIE_Gasgun2_SetModal v-if="currentDevice==='xinjie-gasgun2'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
     <XINJIE_Gasgun1_SetModal v-if="currentDevice==='xinjie-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    <HEPS_Gasgun1_SetModal v-if="currentDevice==='heps-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
     
 
     <!-- 设备选择模态框 -->
-    <div class="modal-mask" v-if="showDeviceModal" @click.self="showDeviceModal = false">
+    <div class="modal-mask" v-if="showDeviceModal">
       <div class="modal-container">
         <h2 class="modal-title">设备选择</h2>
 
@@ -100,17 +103,22 @@ import { WindowMinimise, WindowToggleMaximise, WindowMaximise, Quit } from '../w
 
 import XINJIE_Gasgun1 from './components/xinjiegasgun1/GasGunWindow.vue'
 import XINJIE_Gasgun2 from './components/xinjiegasgun2/GasGunWindow.vue'
+import HEPS_Gasgun1 from './components/xinjieHEPSgasgun1/GasGunWindow.vue'
+
 import XINJIE_Gasgun1_SetModal from './components/xinjiegasgun1/SystemSetModal.vue'
 import XINJIE_Gasgun2_SetModal from './components/xinjiegasgun2/SystemSetModal.vue'
+import HEPS_Gasgun1_SetModal from './components/xinjieHEPSgasgun1/SystemSetModal.vue'
 
 
 
 const ShowSetModal = ref(false)
-const showDeviceModal = ref(true)
+const showDeviceModal = ref(false)
 const tempSelected = ref('xinjie-gasgun1')
 const currentDevice = ref('xinjie-gasgun1')
 
-const User = ref('PIMS')
+const User = ref('NIMTE')
+
+
 
 const Devices = ref({
     PIMS:[
@@ -126,6 +134,7 @@ const Devices = ref({
     ],
     HEPS:[
       { id: 'heps-gasgun1', name: '一级气炮' },
+      { id: 'xinjie-gasgun2', name: '二级气炮' },
     ]
   }
 )
@@ -145,7 +154,9 @@ const handleDeviceConfirm = () => {
 }
 
 onMounted(() => {
-  WindowMaximise()
+  if (Devices.value[User.value].length > 1) {
+    showDeviceModal.value = true
+  }
 })
 
 onUnmounted(() => {
@@ -160,6 +171,8 @@ onUnmounted(() => {
   height: 100%;
   display: flex;
   flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ===== 标题栏 ===== */

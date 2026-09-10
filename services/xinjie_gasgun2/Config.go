@@ -1,5 +1,11 @@
 package xinjiegasgun2
 
+import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+)
+
 // 监控数据结构体
 type GasGun2Heartbeat struct {
 	Running bool   `json:"Running"` //是否连接
@@ -18,7 +24,7 @@ type GasGun2Heartbeat struct {
 }
 
 // 开关地址配置
-type SWITCH struct {
+type SwitchConfig struct {
 	Pressurize uint16 `json:"Pressurize"` //增压阀
 	Decompress uint16 `json:"Decompress"` //减压阀
 	FireSwitch uint16 `json:"FireSwitch"` //发射阀
@@ -48,15 +54,15 @@ type Data struct {
 
 // GasGun2Config 配置结构体
 type Config struct {
-	IP     string `json:"ip"`       // PLC IP地址
-	Switch SWITCH `json:"switches"` // 各阀门的Modbus点位地址
-	Data   Data   `json:"data"`     // 监控数据地址配置
+	IP     string       `json:"ip"`       // PLC IP地址
+	Switch SwitchConfig `json:"switches"` // 各阀门的Modbus点位地址
+	Data   Data         `json:"data"`     // 监控数据地址配置
 }
 
 func NewConfig() Config {
 	return Config{
 		IP: "192.168.6.6",
-		Switch: SWITCH{
+		Switch: SwitchConfig{
 			Pressurize:         0,
 			Decompress:         1,
 			PumpTubePressurize: 4,
@@ -81,10 +87,24 @@ func NewConfig() Config {
 	}
 }
 
-func (c *Config) LoadLocalConfig() error {
-	return nil
+func (c *Config) LoadLocalConfig(path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(data, c)
 }
 
-func (c *Config) SaveLocalConfig() error {
-	return nil
+func (c *Config) SaveLocalConfig(path string) error {
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, data, 0644)
 }

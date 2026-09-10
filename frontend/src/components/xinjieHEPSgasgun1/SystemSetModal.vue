@@ -46,7 +46,7 @@
 
 <script setup>
 import { reactive, ref, watch } from 'vue'
-import { GetConfig, SaveConfig } from '../../../wailsjs/go/xinjiegasgun1/XinjieGasGun1.js'
+import { GetConfig, SaveConfig } from '../../../wailsjs/go/hepsgasgun1/HEPSGasGun1'
 
 const props = defineProps({ show: { type: Boolean, default: false } })
 const emit = defineEmits(['update:show', 'save'])
@@ -55,8 +55,11 @@ const yFields = [
   { key: 'VacuumRealseAddr', label: '真空释放阀' }, { key: 'PressureOpenAddr', label: '压力开启阀' }, { key: 'PressureCloseAddr', label: '压力关闭阀' },
   { key: 'TailVacuumPumpAddr', label: '尾部真空泵' }, { key: 'TarVacuumPumpAddr', label: '靶室真空泵' },
 ]
-const dFields = [{ key: 'VacuumFloatAddr', label: '真空浮点' }, { key: 'PressureFloatAddr', label: '压力浮点' }]
-const mFields = [{ key: 'DogAddr', label: '看门狗' }]
+const dFields = [
+  { key: 'InputPressureAddr', label: '输入压力' }, { key: 'VacuumFloatAddr', label: '真空浮点' },
+  { key: 'PressureFloatAddr', label: '压力浮点' }, { key: 'TailVaccumFloatAddr', label: '尾部真空浮点' },
+]
+const mFields = [{ key: 'DogAddr', label: '狗叫' }]
 const config = reactive({})
 const loading = ref(false)
 const error = ref('')

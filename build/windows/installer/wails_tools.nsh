@@ -8,7 +8,7 @@
     !define INFO_PROJECTNAME "gasgun_gb"
 !endif
 !ifndef INFO_COMPANYNAME
-    !define INFO_COMPANYNAME "PIMS"
+    !define INFO_COMPANYNAME "NIMTE"
 !endif
 !ifndef INFO_PRODUCTNAME
     !define INFO_PRODUCTNAME "力学实验室轻气炮系统"

@@ -181,7 +181,7 @@ const ledItems = [
 ]
 
 const Target = reactive({
-    ip:         '192.168.11.9',
+    ip:         '192.168.6.6',
     pressure:    1.00,
     autoRunning:  false,
 })

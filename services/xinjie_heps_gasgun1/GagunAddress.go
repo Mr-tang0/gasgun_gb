@@ -1,4 +1,4 @@
-package xinjiegasgun1
+package hepsgasgun1
 
 import (
 	"encoding/json"
@@ -19,8 +19,10 @@ type Config struct {
 	TarVacuumPumpAddr  uint16 `json:"TarVacuumPumpAddr"`
 
 	// D地址
-	VacuumFloatAddr   uint16 `json:"VacuumFloatAddr"`
-	PressureFloatAddr uint16 `json:"PressureFloatAddr"`
+	InputPressureAddr   uint16 `json:"InputPressureAddr"`
+	VacuumFloatAddr     uint16 `json:"VacuumFloatAddr"`
+	PressureFloatAddr   uint16 `json:"PressureFloatAddr"`
+	TailVaccumFloatAddr uint16 `json:"TailVaccumFloatAddr"`
 
 	// M地址
 	DogAddr uint16 `json:"DogAddr"`
@@ -28,17 +30,19 @@ type Config struct {
 
 func NewConfig() Config {
 	return Config{
-		InletAddr:          0,
-		OutletAddr:         1,
-		FireAddr:           2,
-		VacuumRealseAddr:   3,
-		PressureOpenAddr:   4,
-		PressureCloseAddr:  5,
-		TailVacuumPumpAddr: 6,
-		TarVacuumPumpAddr:  7,
-		VacuumFloatAddr:    0,
-		PressureFloatAddr:  2,
-		DogAddr:            0,
+		InletAddr:           0,
+		OutletAddr:          1,
+		FireAddr:            2,
+		VacuumRealseAddr:    10,
+		PressureOpenAddr:    4,
+		PressureCloseAddr:   5,
+		TailVacuumPumpAddr:  12,
+		TarVacuumPumpAddr:   11,
+		InputPressureAddr:   56,
+		VacuumFloatAddr:     58,
+		PressureFloatAddr:   54,
+		TailVaccumFloatAddr: 60,
+		DogAddr:             0,
 	}
 }
 
@@ -64,7 +68,7 @@ func (c *Config) SaveLocalConfig(path string) error {
 	return os.WriteFile(path, data, 0644)
 }
 
-type GasgunHeartbeat struct {
+type HEPSGasgunHeartbeat struct {
 	Time     string          `json:"time"`
 	Running  bool            `json:"running"`
 	Alarm    string          `json:"alarm"`

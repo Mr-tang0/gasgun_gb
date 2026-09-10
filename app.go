@@ -6,30 +6,35 @@ import (
 	"gasgun_gb/backend"
 	xinjiegasgun1 "gasgun_gb/services/xinjie_gasgun1"
 	xinjiegasgun2 "gasgun_gb/services/xinjie_gasgun2"
+	hepsgasgun1 "gasgun_gb/services/xinjie_heps_gasgun1"
 )
 
 type App struct {
 	ctx             context.Context
 	xinjieGasgun1   *xinjiegasgun1.XinjieGasGun1
 	xinjieGasgun2   *xinjiegasgun2.XinjieGasGun2
+	hepsGasgun1     *hepsgasgun1.HEPSGasGun1
 	normalHopkinson *backend.NormalHopkinsonContoller
 
 	updater *backend.UpdateService
 }
 
-func NewApp(xinjieGasgun1 *xinjiegasgun1.XinjieGasGun1, xinjieGasgun2 *xinjiegasgun2.XinjieGasGun2) *App {
+func NewApp(xinjieGasgun1 *xinjiegasgun1.XinjieGasGun1,
+	xinjieGasgun2 *xinjiegasgun2.XinjieGasGun2,
+	HEPSGasgun1 *hepsgasgun1.HEPSGasGun1) *App {
 	app := &App{
-		ctx:           context.Background(),
 		xinjieGasgun1: xinjieGasgun1,
 		xinjieGasgun2: xinjieGasgun2,
+		hepsGasgun1:   HEPSGasgun1,
 	}
-	app.xinjieGasgun1.Startup(app.ctx)
-	app.xinjieGasgun2.Startup(app.ctx)
 	return app
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.xinjieGasgun1.Startup(ctx)
+	a.xinjieGasgun2.Startup(ctx)
+	a.hepsGasgun1.Startup(ctx)
 	//创建更新服务
 	a.updater = &backend.UpdateService{}
 }

@@ -67,7 +67,9 @@
         <div class="metric-card pump-tube-card">
           <span class="label">{{ pumpTubeLabel }}</span>
           <div class="value-area">
-            <span class="main-value">{{ pumpTubeMainValue }}</span>
+            <span class="main-value">{{ pumpTubeIsHighPrecision ? 
+            System.PumpTubePressureHi.toFixed(3) 
+            : System.PumpTubePressure.toFixed(2) }}</span>
             <button
               class="toggle-btn"
               @mousedown="PumpTubePrecision('high')"
@@ -75,7 +77,10 @@
               @mouseleave="PumpTubePrecision('low')"
             >切换</button>
           </div>
-          <span class="sub-value">{{ pumpTubeSubValue }}</span>
+          <span class="sub-value">
+            {{ pumpTubeIsHighPrecision ? 
+            System.PumpTubePressure.toFixed(2) 
+            : System.PumpTubePressureHi.toFixed(3) }}</span>  
         </div>
         <div class="metric-card">
           <span class="label">靶室真空度 (Pa)</span>
@@ -95,7 +100,7 @@
             :key="v.key"
             class="valve-btn"
             :class="{ 'active': v.active }"true
-            @click="toggleValveButton(v.key)"
+            @click="toggleValveButton(v)"
           >{{ v.label }}</button>
         </div>
       </section>
@@ -135,13 +140,18 @@
               <input v-model.number="Target.CylinderPressure" 
               type="number" step="0.1" class="pressure-input" />
             </div>
-            <button class="ctrl-btn start-btn" @click="toggleCylinderAutoMode">开始</button>
+            <button :class="['ctrl-btn', System.PressureAutoRunning ? 'stop-btn' : 'start-btn']" 
+            @click="toggleCylinderAuto">{{ System.PressureAutoRunning ? '停止' : '开始' }}</button>
           </div>
           <div v-else class="manual-controls">
             <button class="mini-btn plus-btn" 
-              @mousedown="manualPressurize(true)" @mouseup="manualPressurize(false)">进气</button>
+              @mousedown="handlePressurize(true)" 
+              @mouseup="handlePressurize(false)"
+              @mouseleave="handlePressurize(false)">进气</button>
             <button class="mini-btn minus-btn"
-              @mousedown="manualDecompress(true)" @mouseup="manualDecompress(false)">排气</button>
+              @mousedown="handleDecompress(true)" 
+              @mouseup="handleDecompress(false)"
+              @mouseleave="handleDecompress(false)">排气</button>
           </div>
         </div>
 
@@ -157,15 +167,20 @@
           <div v-if="Target.PumpTubeAutoMode" class="auto-group">
             <div class="auto-fields">
               <label class="auto-label">目标 (MPa)</label>
-              <input v-model.number="pumpTubeTargetPressure" type="number" step="0.1" class="pressure-input" />
+              <input v-model.number="Target.PumpTubePressure" type="number" step="0.1" class="pressure-input" />
             </div>
-            <button class="ctrl-btn start-btn" @click="togglePumpTubeAutoMode">开始</button>
+            <button :class="['ctrl-btn', System.PumpTubeAutoRunning ? 'stop-btn' : 'start-btn']" 
+            @click="togglePumpTubeAuto">{{ System.PumpTubeAutoRunning ? '停止' : '开始' }}</button>
           </div>
           <div v-else class="manual-controls">
             <button class="mini-btn plus-btn"
-              @mousedown="manualPumpTubePressurize(true)" @mouseup="manualPumpTubePressurize(false)">进气</button>
+              @mousedown="handlePumpTubePressurize(true)"
+              @mouseup="handlePumpTubePressurize(false)"
+              @mouseleave="handlePumpTubePressurize(false)">进气</button>
             <button class="mini-btn minus-btn"
-              @mousedown="manualPumpTubeDecompress(true)" @mouseup="manualPumpTubeDecompress(false)">排气</button>
+              @mousedown="handlePumpTubeDecompress(true)" 
+              @mouseup="handlePumpTubeDecompress(false)"
+              @mouseleave="handlePumpTubeDecompress(false)">排气</button>
           </div>
         </div>
 
@@ -177,7 +192,7 @@
             <div class="toggle-switch" 
             :class="{ 'active': Target.ExternalTrigger }" 
             style="--off-text: '内触发'; --on-text: '外触发'" 
-            @click="Target.ExternalTrigger = !Target.ExternalTrigger"></div>
+            @click="toggleTrigger"></div>
           </div>
           <button class="ctrl-btn fire-btn" :disabled="Target.ExternalTrigger" @click="handleFire">立即发射</button>
         </div>
@@ -185,14 +200,14 @@
         <!-- 5. 系统恢复 -->
         <div class="action-zone">
           <div class="zone-title">系统恢复</div>
-          <button class="ctrl-btn reset-btn" :class="{ 'active': isResetting }" @click="handleReset">{{ isResetting ? '恢复中...' : '系统恢复' }}</button>
+          <button class="ctrl-btn reset-btn" :class="{ 'active': System.isResetting }" @click="toggleReset">{{ System.isResetting ? '恢复中...' : '系统恢复' }}</button>
         </div>
       </footer>
     </main>
   </div>
 
   <!-- 发射倒计时模态框 -->
-  <div v-if="showCountdown" class="countdown-overlay">
+  <!-- <div v-if="showCountdown" class="countdown-overlay">
     <div class="countdown-container">
       <div class="countdown-ring">
         <div class="countdown-number">{{ countdown }}</div>
@@ -200,7 +215,7 @@
       <div class="countdown-text">发射倒计时</div>
       <div class="countdown-hint">按下任意键取消发射</div>
     </div>
-  </div>
+  </div> -->
 
 </template>
 
@@ -229,10 +244,6 @@ import {
   Fire,
   ResetSystem,
   SetTriggerMode,
-  ManualPumpTubePressurize,
-  ManualPumpTubeDecompress,
-  ManualPressurize,
-  ManualDecompress,
   CloseSwitch,
   OpenSwitch,
 } from '../../../wailsjs/go/xinjiegasgun2/XinjieGasGun2'
@@ -257,6 +268,7 @@ const System = reactive({
   PumpTubeVacuumRunning: false,
   PressureAutoRunning:   false,
   PumpTubeAutoRunning: false,
+  isResetting:false,
 })
 
 const Target = reactive({
@@ -287,10 +299,12 @@ const valveButtons = reactive([
 
 
 
+
 onMounted(() => {
   EventsOn('xinjie_gasgun2_heartbeat', (info) => {
     if (!info) return
     try {
+        // console.log(info)
         System.connected = info.Running
         System.alarm = info.Alarm
 
@@ -304,9 +318,8 @@ onMounted(() => {
 
         System.time = info.Time
 
-
         valveButtons.forEach(v => {
-          v.active = info.out[v.key]
+          v.active = info.Output[v.key]
         })
     } catch (e) {
       addLog(`解析心跳数据失败: ${e}`)
@@ -361,21 +374,15 @@ async function handleConnect(open) {
 // ===== 泵管精度切换 =====
 const pumpTubeIsHighPrecision = ref(false)
 const pumpTubeLabel = ref('二级泵管气压 (MPa)')
-const pumpTubeMainValue = ref('0.00')
-const pumpTubeSubValue = ref('0.000')
 const PumpTubePrecision = async (key) => {
   if (key === 'high') {
     try { await OpenSwitch('PumpTubeProtect') } catch (e) { addLog(`操作失败: ${e}`) }
     pumpTubeIsHighPrecision.value = true
     pumpTubeLabel.value = '二级泵管气压 (高精度)'
-    pumpTubeMainValue.value = System.PumpTubePressureHi.toFixed(3)
-    pumpTubeSubValue.value = System.PumpTubePressure.toFixed(2)
   } else {
     try { await CloseSwitch('PumpTubeProtect') } catch (e) { addLog(`操作失败: ${e}`) }
     pumpTubeIsHighPrecision.value = false
     pumpTubeLabel.value = '二级泵管气压 (MPa)'
-    pumpTubeMainValue.value = System.PumpTubePressure.toFixed(2)
-    pumpTubeSubValue.value = System.PumpTubePressureHi.toFixed(3)
   }
 }
 
@@ -387,8 +394,6 @@ async function toggleValveButton(v) {
     } else {
       await OpenSwitch(v.key)
     }
-    v.active = !v.active
-    addLog(`${v.label} ${v.active ? '开启' : '关闭'}`)
   } catch (e) {
     addLog(`操作失败: ${e}`)
   }
@@ -422,32 +427,97 @@ async function togglePumpTubeVacuum() {
   }
 }
 
-async function toggleCylinderAutoMode() {
+async function toggleCylinderAuto() {
   try {
     if (System.PressureAutoRunning) {
       await StopAutoCylinderPressure()
     } else {
-      await AutoCylinderPressure(Target.CylinderPressure.value)
+      console.log(Target.CylinderPressure)
+      await AutoCylinderPressure(Target.CylinderPressure)
+    }
+    System.PressureAutoRunning = !System.PressureAutoRunning
+    addLog(`气瓶自动运行已切换: ${System.PressureAutoRunning}`)
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function handlePressurize(open){
+  try {
+    if (open) {
+      await OpenSwitch('Pressurize')
+    } else {
+      await CloseSwitch('Pressurize')
     }
   } catch (e) {
     addLog(`操作失败: ${e}`)
   }
 }
 
-async function togglePumpTubeAutoMode() {
+async function handleDecompress(open){
+  try {
+    if (open) {
+      await OpenSwitch('Decompress')
+    } else {
+      await CloseSwitch('Decompress')
+    }
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function togglePumpTubeAuto() {
   try {
     if (System.PumpTubeAutoRunning) {
       await StopAutoPumpTubePressure()
     } else {
-      await AutoPumpTubePressure(Target.PumpTubePressure.value)
+      console.log(Target.PumpTubePressure)
+      await AutoPumpTubePressure(Target.PumpTubePressure)
+    }
+    System.PumpTubeAutoRunning = !System.PumpTubeAutoRunning
+    addLog(`泵管自动运行已切换: ${System.PumpTubeAutoRunning}`)
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function handlePumpTubePressurize(open){
+  try {
+    if (open) {
+      await OpenSwitch('PumpTubePressurize')
+    } else {
+      await CloseSwitch('PumpTubePressurize')
     }
   } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function handlePumpTubeDecompress(open){
+  try {
+    if (open) {
+      await OpenSwitch('PumpTubeDecompress')
+    } else {
+      await CloseSwitch('PumpTubeDecompress')
+    }
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function toggleTrigger() {
+  try{
+    await SetTriggerMode(!Target.ExternalTrigger)
+    Target.ExternalTrigger = !Target.ExternalTrigger
+  }catch(e){
     addLog(`操作失败: ${e}`)
   }
 }
 
 async function handleFire() {
   try {
+    System.VacuumRunning = false
+    System.PumpTubeVacuumRunning = false
     await PrepareFire()
     await Fire()
     addLog('发射已开启')
@@ -457,179 +527,18 @@ async function handleFire() {
 }
 
 
-// // ===== 控制状态 =====
-// const vacuumRunning = ref(false)
-// const pumpTubeVacuumRunning = ref(false)
-// const isResetting = ref(false)
-// const isExternalTrigger = ref(false)
-// const pumpTubeAutoMode = ref(false)
-// const cylinderAutoMode = ref(false)
-// const pumpTubeTargetPressure = ref(2.0)
-// const cylinderTargetPressure = ref(1.0)
-// const showCountdown = ref(false)
-// const countdown = ref(3)
+async function toggleReset() {
+  try {
+    await ResetSystem(!System.isResetting)
+    System.isResetting = !System.isResetting
+    addLog('已重置')
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
 
 
 
-
-
-
-
-
-
-
-
-
-
-// // ===== 事件处理 =====
-// const handleConnect = async (open) => {
-//   if (open) {
-//     try {
-//       await ConnectDevice(Target.ip)
-//       addLog(`尝试连接 ${Target.ip}`)
-//     } catch (e) {
-//       addLog(`连接失败: ${e}`)
-//     }
-//   } else {
-//     try {
-//       await DisconnectDevice()
-//       addLog('断开连接')
-//     } catch (e) {
-//       addLog(`断开失败: ${e}`)
-//     }
-//   }
-// }
-
-// const toggleVacuum = async () => {
-//   if (vacuumRunning.value) {
-//     try { await StopAutoVacuum(); vacuumRunning.value = false; addLog('停止抽真空') } catch (e) { addLog(`操作失败: ${e}`) }
-//   } else {
-//     try { await StartAutoVacuum(); vacuumRunning.value = true; addLog('开始抽真空') } catch (e) { addLog(`操作失败: ${e}`) }
-//   }
-// }
-
-// const togglePumpTubeVacuum = async () => {
-//   if (pumpTubeVacuumRunning.value) {
-//     try { await StopPumpTubeVacuum(); pumpTubeVacuumRunning.value = false; addLog('停止抽泵管') } catch (e) { addLog(`操作失败: ${e}`) }
-//   } else {
-//     try { await StartPumpTubeVacuum(); pumpTubeVacuumRunning.value = true; addLog('开始抽泵管') } catch (e) { addLog(`操作失败: ${e}`) }
-//   }
-// }
-
-// const toggleCylinderAutoMode = async () => {
-//   if (cylinderAutoMode.value) {
-//     try { await StopAutoCylinderPressure(); addLog('气瓶自动控制已停止') } catch (e) { addLog(`操作失败: ${e}`) }
-//   } else {
-//     try { await AutoCylinderPressure(cylinderTargetPressure.value); addLog(`气瓶自动控制, 目标 ${cylinderTargetPressure.value} MPa`) } catch (e) { addLog(`操作失败: ${e}`) }
-//   }
-// }
-
-// const setCylinderMode = async (auto) => {
-//   if (auto) {
-//     cylinderAutoMode.value = true
-//   } else {
-//     if (cylinderAutoMode.value) {
-//       try { await StopAutoCylinderPressure(); addLog('气瓶自动控制已停止') } catch (e) { addLog(`操作失败: ${e}`) }
-//     }
-//     cylinderAutoMode.value = false
-//   }
-// }
-
-// const togglePumpTubeAutoMode = async () => {
-//   if (pumpTubeAutoMode.value) {
-//     try { await StopAutoPumpTubePressure(); addLog('泵管自动控制已停止') } catch (e) { addLog(`操作失败: ${e}`) }
-//   } else {
-//     try { await AutoPumpTubePressure(pumpTubeTargetPressure.value); addLog(`泵管自动控制, 目标 ${pumpTubeTargetPressure.value} MPa`) } catch (e) { addLog(`操作失败: ${e}`) }
-//   }
-// }
-
-// const setPumpTubeMode = async (auto) => {
-//   if (auto) {
-//     pumpTubeAutoMode.value = true
-//   } else {
-//     if (pumpTubeAutoMode.value) {
-//       try { await StopAutoPumpTubePressure(); addLog('泵管自动控制已停止') } catch (e) { addLog(`操作失败: ${e}`) }
-//     }
-//     pumpTubeAutoMode.value = false
-//   }
-// }
-
-// const manualPressurize = async (enable) => {
-//   try { await ManualPressurize(enable); addLog(enable ? '气瓶加气' : '气瓶停止加气') } catch (e) { addLog(`操作失败: ${e}`) }
-// }
-
-// const manualDecompress = async (enable) => {
-//   try { await ManualDecompress(enable); addLog(enable ? '气瓶泄气' : '气瓶停止泄气') } catch (e) { addLog(`操作失败: ${e}`) }
-// }
-
-// const manualPumpTubePressurize = async (enable) => {
-//   try { await ManualPumpTubePressurize(enable); addLog(enable ? '泵管加气' : '泵管停止加气') } catch (e) { addLog(`操作失败: ${e}`) }
-// }
-
-// const manualPumpTubeDecompress = async (enable) => {
-//   try { await ManualPumpTubeDecompress(enable); addLog(enable ? '泵管泄气' : '泵管停止泄气') } catch (e) { addLog(`操作失败: ${e}`) }
-// }
-
-// const setTriggerMode = (isExternal) => {
-//   isExternalTrigger.value = isExternal
-//   try { SetTriggerMode(isExternal) } catch (e) { /* 后端未就绪 */ }
-//   addLog(`触发模式: ${isExternal ? '外触发' : '内触发'}`)
-// }
-
-// const handleFire = async () => {
-//   try {
-//     await Fire()
-//     addLog('执行发射')
-//   } catch (e) {
-//     addLog(`发射失败: ${e}`)
-//   }
-// }
-
-// const handleReset = async () => {
-//   if (isResetting.value) {
-//     try { await ResetSystem(false); isResetting.value = false; addLog('系统重置完成') } catch (e) { addLog(`操作失败: ${e}`) }
-//   } else {
-//     try { await ResetSystem(true); isResetting.value = true; addLog('系统恢复中') } catch (e) { addLog(`操作失败: ${e}`) }
-//   }
-// }
-
-
-// // ===== 生命周期 =====
-// onMounted(() => {
-//   EventsOn('heartbeat', (info) => {
-//     if (!info) return
-//     try {
-//       System.connected = info.running
-//       System.alarm = info.alarm || ''
-//       if (info.inputPressure !== undefined) System.InputPressure = info.inputPressure
-//       if (info.cylinderPressure !== undefined) System.CylinderPressure = info.cylinderPressure
-//       if (info.pumpTubePressure !== undefined) System.PumpTubePressure = info.pumpTubePressure
-//       if (info.pumpTubePressureHi !== undefined) System.PumpTubePressureHi = info.pumpTubePressureHi
-//       if (info.targetVacuumDegree !== undefined) System.TargetVacuumDegree = info.targetVacuumDegree
-//       if (info.tailVacuumDegree !== undefined) System.TailVacuumDegree = info.tailVacuumDegree
-//       System.time = info.time || '00:00:00'
-
-//       if (pumpTubeIsHighPrecision.value) {
-//         pumpTubeMainValue.value = System.PumpTubePressureHi.toFixed(3)
-//         pumpTubeSubValue.value = System.PumpTubePressure.toFixed(2)
-//       } else {
-//         pumpTubeMainValue.value = System.PumpTubePressure.toFixed(2)
-//         pumpTubeSubValue.value = System.PumpTubePressureHi.toFixed(3)
-//       }
-//     } catch (e) {
-//       addLog(`解析心跳数据失败: ${e}`)
-//     }
-//   })
-
-//   EventsOn('message', (msg) => {
-//     addLog(msg)
-//   })
-// })
-
-// onUnmounted(() => {
-//   EventsOff('heartbeat')
-//   EventsOff('message')
-// })
 </script>
 
 <style scoped>
@@ -1178,6 +1087,19 @@ async function handleFire() {
 
 .auto-group .start-btn:hover {
   background: #3d549a;
+}
+
+.auto-group .stop-btn {
+  flex: 0 0 auto;
+  min-width: 70px;
+  min-height: 0;
+  background: #e74c3c;
+  color: #fff;
+  border-color: #c0392b;
+}
+
+.auto-group .stop-btn:hover {
+  background: #c0392b;
 }
 
 /* 通用 flex:1 按钮（发射/恢复等） */

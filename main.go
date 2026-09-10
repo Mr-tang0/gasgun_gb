@@ -4,6 +4,7 @@ import (
 	"embed"
 	xinjiegasgun1 "gasgun_gb/services/xinjie_gasgun1"
 	xinjiegasgun2 "gasgun_gb/services/xinjie_gasgun2"
+	hepsgasgun1 "gasgun_gb/services/xinjie_heps_gasgun1"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -15,11 +16,11 @@ var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
-
 	XinjieGasgun1 := xinjiegasgun1.NewXinjieGasGun1()
 	XinjieGasgun2 := xinjiegasgun2.NewXinjieGasGun2()
+	HEPSGasgun1 := hepsgasgun1.NewHEPSGasGun1()
 
-	app := NewApp(XinjieGasgun1, XinjieGasgun2)
+	app := NewApp(XinjieGasgun1, XinjieGasgun2, HEPSGasgun1)
 
 	// Create application with options
 	err := wails.Run(&options.App{
@@ -36,6 +37,7 @@ func main() {
 			app,
 			XinjieGasgun1,
 			XinjieGasgun2,
+			HEPSGasgun1,
 		},
 	})
 

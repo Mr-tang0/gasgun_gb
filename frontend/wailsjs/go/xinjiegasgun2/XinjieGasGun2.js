@@ -26,24 +26,8 @@ export function Fire() {
   return window['go']['xinjiegasgun2']['XinjieGasGun2']['Fire']();
 }
 
-export function ManualDecompress(arg1) {
-  return window['go']['xinjiegasgun2']['XinjieGasGun2']['ManualDecompress'](arg1);
-}
-
-export function ManualPressurize(arg1) {
-  return window['go']['xinjiegasgun2']['XinjieGasGun2']['ManualPressurize'](arg1);
-}
-
-export function ManualPumpTubeDecompress(arg1) {
-  return window['go']['xinjiegasgun2']['XinjieGasGun2']['ManualPumpTubeDecompress'](arg1);
-}
-
-export function ManualPumpTubePressurize(arg1) {
-  return window['go']['xinjiegasgun2']['XinjieGasGun2']['ManualPumpTubePressurize'](arg1);
-}
-
-export function ManualPumpTubeProtect(arg1) {
-  return window['go']['xinjiegasgun2']['XinjieGasGun2']['ManualPumpTubeProtect'](arg1);
+export function GetConfig() {
+  return window['go']['xinjiegasgun2']['XinjieGasGun2']['GetConfig']();
 }
 
 export function OpenSwitch(arg1) {
@@ -56,6 +40,10 @@ export function PrepareFire() {
 
 export function ResetSystem(arg1) {
   return window['go']['xinjiegasgun2']['XinjieGasGun2']['ResetSystem'](arg1);
+}
+
+export function SaveConfig(arg1) {
+  return window['go']['xinjiegasgun2']['XinjieGasGun2']['SaveConfig'](arg1);
 }
 
 export function SetTriggerMode(arg1) {

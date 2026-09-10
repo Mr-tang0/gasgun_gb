@@ -78,34 +78,35 @@
           <div class="settings-grid-2col">
             <div class="setting-group">
               <label>气路输入压力(D):</label>
-              <input v-model.number="config.dataAddresses.InputPressure" type="number" />
+              <input v-model.number="config.data.InputPressure" type="number" />
             </div>
             <div class="setting-group">
               <label>气瓶压力(D):</label>
-              <input v-model.number="config.dataAddresses.CylinderPressure" type="number" />
+              <input v-model.number="config.data.CylinderPressure" type="number" />
             </div>
             <div class="setting-group">
               <label>泵管压力(D):</label>
-              <input v-model.number="config.dataAddresses.PumpTubePressure" type="number" />
+              <input v-model.number="config.data.PumpTubePressure" type="number" />
             </div>
             <div class="setting-group">
               <label>泵管高精度压力(D):</label>
-              <input v-model.number="config.dataAddresses.PumpTubePressureHi" type="number" />
+              <input v-model.number="config.data.PumpTubePressureHi" type="number" />
             </div>
             <div class="setting-group">
               <label>靶室真空度(D):</label>
-              <input v-model.number="config.dataAddresses.TargetVacuumDegree" type="number" />
+              <input v-model.number="config.data.TargetVacuumDegree" type="number" />
             </div>
             <div class="setting-group">
               <label>尾部真空度(D):</label>
-              <input v-model.number="config.dataAddresses.TailVacuumDegree" type="number" />
+              <input v-model.number="config.data.TailVacuumDegree" type="number" />
             </div>
           </div>
         </div>
       </div>
+      <div v-if="error" class="error-message">{{ error }}</div>
       <div class="modal-actions">
         <button class="modal-btn btn-cancel" @click="close">取消</button>
-        <button class="modal-btn btn-confirm" @click="$emit('save')">确认保存</button>
+        <button class="modal-btn btn-confirm" :disabled="loading" @click="save">{{ loading ? '保存中...' : '确认保存' }}</button>
       </div>
     </div>
   </div>
@@ -113,40 +114,23 @@
 
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-// ===== 配置 =====
-const config = reactive({
-  ip: '192.168.6.6',
-  switches: {
-    Pressurize: 1,
-    Decompress: 2,
-    PumpTubePressurize: 3,
-    PumpTubeDecompress: 4,
-    PumpTubeVacuum: 5,
-    TargetVacuum: 6,
-    TailVacuumProtect: 7,
-    PumpTubeProtect: 8,
-    FireSwitch: 9,
-    SystemDecompress: 10,
-    TargetVacuumPump: 11,
-    TailVacuumPump: 12,
-  },
-  dataAddresses: {
-    InputPressure: 0,
-    CylinderPressure: 2,
-    PumpTubePressure: 4,
-    PumpTubePressureHi: 6,
-    TargetVacuumDegree: 8,
-    TailVacuumDegree: 10,
-  }
-})
+import { reactive, ref, watch } from 'vue'
+import { GetConfig, SaveConfig } from '../../../wailsjs/go/xinjiegasgun2/XinjieGasGun2.js'
 
-defineProps({
-  show: { type: Boolean, default: false },
-})
-
+const props = defineProps({ show: { type: Boolean, default: false } })
 const emit = defineEmits(['update:show', 'save'])
-
+const config = reactive({ ip: '', switches: {}, data: {} })
+const loading = ref(false)
+const error = ref('')
+const load = async () => {
+  loading.value = true; error.value = ''
+  try { Object.assign(config, await GetConfig()) } catch (e) { error.value = `读取配置失败：${e}` } finally { loading.value = false }
+}
+const save = async () => {
+  loading.value = true; error.value = ''
+  try { await SaveConfig({ ...config }); emit('save') } catch (e) { error.value = `保存配置失败：${e}` } finally { loading.value = false }
+}
+watch(() => props.show, value => { if (value) load() })
 const close = () => emit('update:show', false)
 </script>
 

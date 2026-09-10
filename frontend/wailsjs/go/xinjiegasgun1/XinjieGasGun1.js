@@ -30,12 +30,20 @@ export function FireSwitch(arg1) {
   return window['go']['xinjiegasgun1']['XinjieGasGun1']['FireSwitch'](arg1);
 }
 
+export function GetConfig() {
+  return window['go']['xinjiegasgun1']['XinjieGasGun1']['GetConfig']();
+}
+
 export function InletSwitch(arg1) {
   return window['go']['xinjiegasgun1']['XinjieGasGun1']['InletSwitch'](arg1);
 }
 
 export function PressureSwitch(arg1) {
   return window['go']['xinjiegasgun1']['XinjieGasGun1']['PressureSwitch'](arg1);
+}
+
+export function SaveConfig(arg1) {
+  return window['go']['xinjiegasgun1']['XinjieGasGun1']['SaveConfig'](arg1);
 }
 
 export function Startup(arg1) {
