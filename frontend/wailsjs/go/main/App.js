@@ -9,3 +9,7 @@ export function APIUpdate() {
 export function GetCachedRelease() {
   return window['go']['main']['App']['GetCachedRelease']();
 }
+
+export function GetUser() {
+  return window['go']['main']['App']['GetUser']();
+}

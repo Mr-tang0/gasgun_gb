@@ -9,8 +9,8 @@
         <!-- <img v-if="User=='ADMIN'" src="./assets/images/admin/logo.png" width="100" height="25"> -->
       </div>
 
-      <div class="title">力学实验室控制系统</div>
-      <div class="sub-title" v-if="currentDevice">({{ currentDeviceName }})</div>
+      <div class="title">{{ User }} 力学实验室控制系统</div>
+      <div class="sub-title" v-if="currentDevice">{{ currentDeviceName }}</div>
 
       <div class='window-actions'>
         <button v-if="User=='PIMS'" class="window-btn switch-device-btn" type="button" title="切换设备" @click="showDeviceModal = true">
@@ -68,6 +68,8 @@
     <HEPS_Gasgun1_SetModal v-if="currentDevice==='heps-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
     
 
+    <UpdateModal v-if="showUpdateModal" :version="releaseInfo.version" :url="releaseInfo.url" @close="showUpdateModal = false" />
+
     <!-- 设备选择模态框 -->
     <div class="modal-mask" v-if="showDeviceModal">
       <div class="modal-container">
@@ -97,9 +99,10 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { WindowMinimise, WindowToggleMaximise, WindowMaximise, Quit } from '../wailsjs/runtime/runtime'
+import { WindowMinimise, WindowToggleMaximise, Quit } from '../wailsjs/runtime/runtime'
+import { GetUser, GetCachedRelease } from '../wailsjs/go/main/App.js'
 
-
+import UpdateModal from './components/update.vue'
 
 import XINJIE_Gasgun1 from './components/xinjiegasgun1/GasGunWindow.vue'
 import XINJIE_Gasgun2 from './components/xinjiegasgun2/GasGunWindow.vue'
@@ -109,17 +112,14 @@ import XINJIE_Gasgun1_SetModal from './components/xinjiegasgun1/SystemSetModal.v
 import XINJIE_Gasgun2_SetModal from './components/xinjiegasgun2/SystemSetModal.vue'
 import HEPS_Gasgun1_SetModal from './components/xinjieHEPSgasgun1/SystemSetModal.vue'
 
-
-
 const ShowSetModal = ref(false)
 const showDeviceModal = ref(false)
+const showUpdateModal = ref(false)
+const releaseInfo = ref({ version: '', url: '' })
 const tempSelected = ref('xinjie-gasgun1')
 const currentDevice = ref('xinjie-gasgun1')
 
-const User = ref('NIMTE')
-
-
-
+const User = ref('')
 const Devices = ref({
     PIMS:[
       { id: 'xinjie-gasgun1', name: '一级气炮' },
@@ -153,9 +153,20 @@ const handleDeviceConfirm = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  User.value = await GetUser()
+  console.log(User.value)
+
   if (Devices.value[User.value].length > 1) {
     showDeviceModal.value = true
+  }
+
+  // 检查更新
+  const release = await GetCachedRelease()
+  console.log(release)
+  if (release && release.tag_name) {
+    releaseInfo.value = { version: release.tag_name, url: release.html_url }
+    showUpdateModal.value = true
   }
 })
 

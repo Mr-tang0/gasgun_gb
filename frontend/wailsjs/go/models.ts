@@ -1,4 +1,45 @@
-export namespace backend {
+export namespace hepsgasgun1 {
+	
+	export class Config {
+	    InletAddr: number;
+	    OutletAddr: number;
+	    FireAddr: number;
+	    VacuumRealseAddr: number;
+	    PressureOpenAddr: number;
+	    PressureCloseAddr: number;
+	    TailVacuumPumpAddr: number;
+	    TarVacuumPumpAddr: number;
+	    InputPressureAddr: number;
+	    VacuumFloatAddr: number;
+	    PressureFloatAddr: number;
+	    TailVaccumFloatAddr: number;
+	    DogAddr: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new Config(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.InletAddr = source["InletAddr"];
+	        this.OutletAddr = source["OutletAddr"];
+	        this.FireAddr = source["FireAddr"];
+	        this.VacuumRealseAddr = source["VacuumRealseAddr"];
+	        this.PressureOpenAddr = source["PressureOpenAddr"];
+	        this.PressureCloseAddr = source["PressureCloseAddr"];
+	        this.TailVacuumPumpAddr = source["TailVacuumPumpAddr"];
+	        this.TarVacuumPumpAddr = source["TarVacuumPumpAddr"];
+	        this.InputPressureAddr = source["InputPressureAddr"];
+	        this.VacuumFloatAddr = source["VacuumFloatAddr"];
+	        this.PressureFloatAddr = source["PressureFloatAddr"];
+	        this.TailVaccumFloatAddr = source["TailVaccumFloatAddr"];
+	        this.DogAddr = source["DogAddr"];
+	    }
+	}
+
+}
+
+export namespace services {
 	
 	export class  {
 	    name: string;
@@ -47,47 +88,6 @@ export namespace backend {
 		    }
 		    return a;
 		}
-	}
-
-}
-
-export namespace hepsgasgun1 {
-	
-	export class Config {
-	    InletAddr: number;
-	    OutletAddr: number;
-	    FireAddr: number;
-	    VacuumRealseAddr: number;
-	    PressureOpenAddr: number;
-	    PressureCloseAddr: number;
-	    TailVacuumPumpAddr: number;
-	    TarVacuumPumpAddr: number;
-	    InputPressureAddr: number;
-	    VacuumFloatAddr: number;
-	    PressureFloatAddr: number;
-	    TailVaccumFloatAddr: number;
-	    DogAddr: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new Config(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.InletAddr = source["InletAddr"];
-	        this.OutletAddr = source["OutletAddr"];
-	        this.FireAddr = source["FireAddr"];
-	        this.VacuumRealseAddr = source["VacuumRealseAddr"];
-	        this.PressureOpenAddr = source["PressureOpenAddr"];
-	        this.PressureCloseAddr = source["PressureCloseAddr"];
-	        this.TailVacuumPumpAddr = source["TailVacuumPumpAddr"];
-	        this.TarVacuumPumpAddr = source["TarVacuumPumpAddr"];
-	        this.InputPressureAddr = source["InputPressureAddr"];
-	        this.VacuumFloatAddr = source["VacuumFloatAddr"];
-	        this.PressureFloatAddr = source["PressureFloatAddr"];
-	        this.TailVaccumFloatAddr = source["TailVaccumFloatAddr"];
-	        this.DogAddr = source["DogAddr"];
-	    }
 	}
 
 }

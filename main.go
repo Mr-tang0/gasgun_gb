@@ -2,9 +2,11 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	xinjiegasgun1 "gasgun_gb/services/xinjie_gasgun1"
 	xinjiegasgun2 "gasgun_gb/services/xinjie_gasgun2"
 	hepsgasgun1 "gasgun_gb/services/xinjie_heps_gasgun1"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,7 +22,20 @@ func main() {
 	XinjieGasgun2 := xinjiegasgun2.NewXinjieGasGun2()
 	HEPSGasgun1 := hepsgasgun1.NewHEPSGasGun1()
 
-	app := NewApp(XinjieGasgun1, XinjieGasgun2, HEPSGasgun1)
+	// 从 update.json 读取 user 配置
+	appConfig, _ := os.ReadFile("update.json")
+	var cfg struct {
+		User string `json:"user"`
+	}
+	json.Unmarshal(appConfig, &cfg)
+	if cfg.User == "" {
+		cfg.User = "PIMS"
+	}
+
+	app := NewApp(cfg.User,
+		XinjieGasgun1,
+		XinjieGasgun2,
+		HEPSGasgun1)
 
 	// Create application with options
 	err := wails.Run(&options.App{

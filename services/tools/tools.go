@@ -32,6 +32,8 @@ func GetLogPath(company string, software string, subdir string) string {
 }
 
 func Log(msg string, path string) error {
+	fmt.Println(msg)
+
 	line := fmt.Sprintf("%s %s\n", time.Now().Format("2006-01-02 15:04:05"), msg)
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {

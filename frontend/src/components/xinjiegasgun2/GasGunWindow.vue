@@ -192,9 +192,10 @@
             <div class="toggle-switch" 
             :class="{ 'active': Target.ExternalTrigger }" 
             style="--off-text: '内触发'; --on-text: '外触发'" 
-            @click="toggleTrigger"></div>
+            @click="Target.ExternalTrigger = !Target.ExternalTrigger"></div>
           </div>
-          <button class="ctrl-btn fire-btn" :disabled="Target.ExternalTrigger" @click="handleFire">立即发射</button>
+          <button class="ctrl-btn fire-btn" v-if="!Target.ExternalTrigger" @click="handleFire">立即发射</button>
+          <button class="ctrl-btn prepare-btn" v-if="Target.ExternalTrigger" @click="handlePrepareFire">发射准备</button>
         </div>
 
         <!-- 5. 系统恢复 -->
@@ -505,14 +506,14 @@ async function handlePumpTubeDecompress(open){
   }
 }
 
-async function toggleTrigger() {
-  try{
-    await SetTriggerMode(!Target.ExternalTrigger)
-    Target.ExternalTrigger = !Target.ExternalTrigger
-  }catch(e){
-    addLog(`操作失败: ${e}`)
-  }
-}
+// async function toggleTrigger() {
+//   try{
+//     await SetTriggerMode(!Target.ExternalTrigger)
+//     Target.ExternalTrigger = !Target.ExternalTrigger
+//   }catch(e){
+//     addLog(`操作失败: ${e}`)
+//   }
+// }
 
 async function handleFire() {
   try {
@@ -521,6 +522,18 @@ async function handleFire() {
     await PrepareFire()
     await Fire()
     addLog('发射已开启')
+  } catch (e) {
+    addLog(`操作失败: ${e}`)
+  }
+}
+
+async function handlePrepareFire(){
+  try {
+    System.VacuumRunning = false
+    System.PumpTubeVacuumRunning = false
+    await PrepareFire()
+    await SetTriggerMode(Target.ExternalTrigger)
+    addLog('发射准备已开启')
   } catch (e) {
     addLog(`操作失败: ${e}`)
   }
@@ -1203,6 +1216,19 @@ async function toggleReset() {
 .ctrl-btn.fire-btn:hover {
   background: #c73e42;
 }
+
+.ctrl-btn.prepare-btn {
+  background: #f3c42a;
+  color: #fff;
+  border-color: #144f68;
+}
+
+.ctrl-btn.prepare-btn:hover {
+  background: #c29e27;
+}
+
+
+
 
 /* 抽真空（靶室）：绿色系 */
 .ctrl-btn.vacuum-target-btn {

@@ -4,7 +4,7 @@
  * @GitHub: Mr-tang0/CTSystem
  * @Description: 更新服务模块，负责从GitHub获取版本更新信息
  */
-package backend
+package services
 
 import (
 	"encoding/json"
@@ -29,6 +29,10 @@ type GitHubRelease struct {
 		Name               string `json:"name"`
 		BrowserDownloadURL string `json:"browser_download_url"`
 	} `json:"assets"`
+}
+
+func NewUpdateService() *UpdateService {
+	return &UpdateService{}
 }
 
 func (u *UpdateService) GetUpdateInfo() (GitHubRelease, error) {
@@ -89,11 +93,11 @@ func (u *UpdateService) GetUpdateInfo() (GitHubRelease, error) {
 	}
 }
 
-func (u *UpdateService) GetCachedRelease() GitHubRelease {
+func (u *UpdateService) GetCachedRelease() *GitHubRelease {
 	if u.cachedRelease == nil {
 		fmt.Println("release info not available")
-		return GitHubRelease{}
+		return nil
 	}
 	fmt.Println("release info available")
-	return *u.cachedRelease
+	return u.cachedRelease
 }

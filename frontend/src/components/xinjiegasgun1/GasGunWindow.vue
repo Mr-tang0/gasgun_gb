@@ -356,7 +356,6 @@ function handleAutoPressurize() {
   Target.autoRunning = true
   addLog(`开始自动增压，目标 ${t.toFixed(2)} MPa`)
   AutoPressurize(t)
-    .then(() => { Target.autoRunning = false })
     .catch((e) => {
       Target.autoRunning = false
       addLog(`自动增压失败: ${e}`)

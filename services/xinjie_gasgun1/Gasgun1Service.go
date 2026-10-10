@@ -352,16 +352,16 @@ func (g *XinjieGasGun1) AutoPressurize(target float32) {
 				break
 			}
 
-			if pressure > target+0.1 {
-				//1、当前气压大于目标值+0.1，排气开关未打开则打开排气开关， 进气开关未关闭则关闭进气开关
+			if pressure > target+0.2 {
+				//1、当前气压大于目标值+0.2，排气开关未打开则打开排气开关， 进气开关未关闭则关闭进气开关
 				if !outlet {
-					g.InletSwitch(true)
+					g.ExhaustSwitch(true)
 				}
 				if inlet {
-					g.ExhaustSwitch(false)
+					g.InletSwitch(false)
 				}
-			} else if pressure < target-0.1 {
-				//2、当前气压小于目标值-0.1，进气开关未打开则打开进气开关， 排气开关未关闭则关闭排气开关
+			} else if pressure < target-0.2 {
+				//2、当前气压小于目标值-0.2，进气开关未打开则打开进气开关， 排气开关未关闭则关闭排气开关
 				if !inlet {
 					g.InletSwitch(true)
 				}
