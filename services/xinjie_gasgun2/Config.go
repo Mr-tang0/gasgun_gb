@@ -21,6 +21,7 @@ type GasGun2Heartbeat struct {
 	TailVacuumDegree   float32 `json:"TailVacuumDegree"`   //尾部真空度
 
 	Output map[string]bool `json:"Output"` //各阀门状态
+	Input  map[string]bool `json:"Input"`  //各阀门输入状态
 }
 
 // 开关地址配置

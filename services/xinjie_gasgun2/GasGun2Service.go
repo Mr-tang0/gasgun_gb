@@ -35,6 +35,9 @@ func NewXinjieGasGun2() *XinjieGasGun2 {
 		plc:    XinJie.NewXinjieClient("XL5E"),
 		config: NewConfig(),
 		heartbeat_info: &GasGun2Heartbeat{
+			Input: map[string]bool{
+				"FireTrigger": false,
+			},
 			Output: map[string]bool{
 				"Pressurize":         false,
 				"Decompress":         false,
@@ -166,6 +169,17 @@ func (this *XinjieGasGun2) heartbeat() {
 			this.mu.Unlock()
 		}
 
+		X, err := this.plc.ReadCoil(XinJie.X(0), true)
+		if err == nil {
+			prevTrigger := this.heartbeat_info.Input["FireTrigger"]
+			this.heartbeat_info.Input["FireTrigger"] = X
+			// 外触发信号下降沿（true -> false），表示外触发结束，切回内触发
+			if prevTrigger && !X {
+				services.Log("检测到外触发信号结束", this.log_path)
+				this.SetTriggerMode(false)
+			}
+		}
+
 		runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -179,13 +193,13 @@ func (this *XinjieGasGun2) SetTriggerMode(isExternal bool) error {
 	}
 	services.Log(fmt.Sprintf("设置触发模式: %s", mode), this.log_path)
 	if isExternal {
-		err := this.plc.WriteCoils(XinJie.Y(15), []bool{true, true})
+		err := this.plc.WriteCoil(XinJie.Y(15), true)
 		if err != nil {
 			services.Log(fmt.Sprintf("设置触发模式失败: %v", err), this.log_path)
 			return err
 		}
 	} else {
-		err := this.plc.WriteCoils(XinJie.Y(15), []bool{false, false})
+		err := this.plc.WriteCoil(XinJie.Y(15), false)
 		if err != nil {
 			services.Log(fmt.Sprintf("设置触发模式失败: %v", err), this.log_path)
 			return err
@@ -453,6 +467,14 @@ func (this *XinjieGasGun2) PrepareFire() error {
 	if err != nil {
 		services.Log(fmt.Sprintf("关闭尾部真空阀失败: %v", err), this.log_path)
 		return fmt.Errorf("关闭尾部真空阀失败: %w", err)
+	}
+	time.Sleep(500 * time.Millisecond)
+
+	// 关闭泵管真空阀
+	err = this.CloseSwitch("PumpTubeVacuum")
+	if err != nil {
+		services.Log(fmt.Sprintf("关闭泵管真空阀失败: %v", err), this.log_path)
+		return fmt.Errorf("关闭泵管真空阀失败: %w", err)
 	}
 
 	time.Sleep(500 * time.Millisecond)

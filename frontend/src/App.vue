@@ -6,10 +6,10 @@
       <div class="logo"> 
         <img v-if="User=='NIMTE'" src="./assets/images/logo/nimte.png" width="100" height="25">
         <img v-if="User=='PIMS'"  src="./assets/images/logo/pims.png" width="100" height="25">
-        <!-- <img v-if="User=='ADMIN'" src="./assets/images/admin/logo.png" width="100" height="25"> -->
+        <img v-if="User=='HEPS'" src="./assets/images/logo/heps.png" width="40" height="25">
       </div>
 
-      <div class="title">{{ User }} 力学实验室控制系统</div>
+      <div class="title">{{ User }} SDB 实验室控制系统</div>
       <div class="sub-title" v-if="currentDevice">{{ currentDeviceName }}</div>
 
       <div class='window-actions'>
@@ -162,12 +162,12 @@ onMounted(async () => {
   }
 
   // 检查更新
-  const release = await GetCachedRelease()
-  console.log(release)
-  if (release && release.tag_name) {
-    releaseInfo.value = { version: release.tag_name, url: release.html_url }
-    showUpdateModal.value = true
-  }
+  // const release = await GetCachedRelease()
+  // console.log(release)
+  // if (release && release.tag_name) {
+  //   releaseInfo.value = { version: release.tag_name, url: release.html_url }
+  //   showUpdateModal.value = true
+  // }
 })
 
 onUnmounted(() => {

@@ -189,13 +189,13 @@
           <div class="zone-title">发射控制</div>
           <div class="mode-row">
             <span class="mode-label">模式：{{ Target.ExternalTrigger ? '外触发' : '内触发' }}</span>
-            <div class="toggle-switch" 
-            :class="{ 'active': Target.ExternalTrigger }" 
-            style="--off-text: '内触发'; --on-text: '外触发'" 
-            @click="Target.ExternalTrigger = !Target.ExternalTrigger"></div>
+            <div class="toggle-switch"
+            :class="{ 'active': Target.ExternalTrigger, 'disabled': Target.ExternalTriggerWaiting }"
+            style="--off-text: '内触发'; --on-text: '外触发'"
+            @click="!Target.ExternalTriggerWaiting && (Target.ExternalTrigger = !Target.ExternalTrigger)"></div>
           </div>
           <button class="ctrl-btn fire-btn" v-if="!Target.ExternalTrigger" @click="handleFire">立即发射</button>
-          <button class="ctrl-btn prepare-btn" v-if="Target.ExternalTrigger" @click="handlePrepareFire">发射准备</button>
+          <button class="ctrl-btn prepare-btn" v-if="Target.ExternalTrigger" @click="handlePrepareFire">{{ Target.ExternalTriggerWaiting ? '等待触发...' : '发射准备' }}</button>
         </div>
 
         <!-- 5. 系统恢复 -->
@@ -278,6 +278,7 @@ const Target = reactive({
   CylinderAutoMode:    false,
   PumpTubeAutoMode:    false,
   ExternalTrigger:      false,
+  ExternalTriggerWaiting:  false,
 
   CylinderPressure:   1.00,
   PumpTubePressure:   1.00,
@@ -296,7 +297,10 @@ const valveButtons = reactive([
   { key: 'SystemDecompress',   label: '系统排气阀', active: false },
   { key: 'TailVacuumPump',     label: '尾部真空泵', active: false },
   { key: 'TargetVacuumPump',   label: '靶室真空泵', active: false },
+  { key: 'FireTrigger',        label: '外部触发信号', active: false },
 ])
+
+let lastFireTrigger = false
 
 
 
@@ -320,8 +324,16 @@ onMounted(() => {
         System.time = info.Time
 
         valveButtons.forEach(v => {
-          v.active = info.Output[v.key]
+          if (v.key in info.Output) v.active = info.Output[v.key]
+          else if (v.key in info.Input) v.active = info.Input[v.key]
         })
+
+        // 外部触发信号上升沿：等待外触发时收到信号则退出等待状态
+        const fireTrigger = !!(info.Input && info.Input['FireTrigger'])
+        if (fireTrigger && !lastFireTrigger && Target.ExternalTriggerWaiting) {
+          handleExternalTriggered()
+        }
+        lastFireTrigger = fireTrigger
     } catch (e) {
       addLog(`解析心跳数据失败: ${e}`)
     }
@@ -529,13 +541,32 @@ async function handleFire() {
 
 async function handlePrepareFire(){
   try {
-    System.VacuumRunning = false
-    System.PumpTubeVacuumRunning = false
-    await PrepareFire()
-    await SetTriggerMode(Target.ExternalTrigger)
-    addLog('发射准备已开启')
+    if (!Target.ExternalTriggerWaiting) {
+      await PrepareFire()
+      await SetTriggerMode(true)
+
+      Target.ExternalTriggerWaiting = true
+      System.VacuumRunning = false
+      System.PumpTubeVacuumRunning = false
+
+      addLog('已准备发射，等待外触发信号中...')
+    }else{
+      await SetTriggerMode(false)
+      Target.ExternalTriggerWaiting = false
+      addLog('已取消准备发射')
+    }
   } catch (e) {
     addLog(`操作失败: ${e}`)
+  }
+}
+
+// 外部触发信号到来时退出等待状态
+async function handleExternalTriggered(){
+  try {
+    Target.ExternalTriggerWaiting = false
+    addLog('外部信号触发')
+  } catch (e) {
+    addLog(`外部信号触发处理失败: ${e}`)
   }
 }
 
