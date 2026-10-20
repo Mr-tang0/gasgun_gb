@@ -18,8 +18,7 @@ type XinjieGasGun2 struct {
 	heartbeat_info *GasGun2Heartbeat
 	start_time     time.Time
 
-	stopListen context.CancelFunc // 用于停止轮询
-	config     Config             // 配置结构体
+	config Config // 配置结构体
 
 	AutoPumpTubePressureFlag bool
 	AutoCylinderPressureFlag bool
@@ -28,6 +27,11 @@ type XinjieGasGun2 struct {
 	log_path    string
 
 	mu sync.RWMutex // 保护 Output map 的并发访问
+
+	waiting_for_auto_stop_reset bool // 用于等待自动停止重置
+
+	connected_ip        string // 保存连接IP，用于断线自动重连
+	explicit_disconnect bool   // 用户主动断开标记，为true时停止自动重连
 }
 
 func NewXinjieGasGun2() *XinjieGasGun2 {
@@ -89,6 +93,8 @@ func (this *XinjieGasGun2) ConnectDevice(ip string) error {
 	}
 	services.Log("设备连接成功", this.log_path)
 
+	this.connected_ip = ip
+	this.explicit_disconnect = false
 	this.heartbeat_info.Running = true
 	runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
 
@@ -98,20 +104,38 @@ func (this *XinjieGasGun2) ConnectDevice(ip string) error {
 
 func (this *XinjieGasGun2) DisconnectDevice() {
 	services.Log("断开设备连接", this.log_path)
+	this.explicit_disconnect = true
 	this.plc.Close()
 	this.heartbeat_info.Running = false
 	runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
 }
 
 func (this *XinjieGasGun2) heartbeat() {
+	const maxConsecutiveErrors = 3
+	consecutiveErrors := 0
 
 	for {
-		if !this.heartbeat_info.Running {
-			services.Log("心跳包发生错误", this.log_path)
-			this.DisconnectDevice()
+		// 用户主动断开，退出心跳循环
+		if this.explicit_disconnect {
 			return
 		}
-		this.plc.WriteCoil(XinJie.M(0), true)
+
+		// 连接已断开，尝试自动重连
+		if !this.heartbeat_info.Running {
+			if !this.reconnect() {
+				// 重连过程中用户主动断开
+				return
+			}
+			consecutiveErrors = 0
+		}
+
+		// 看门狗：维持PLC心跳，同时作为连接健康检测
+		if err := this.plc.WriteCoil(XinJie.M(0), true); err != nil {
+			consecutiveErrors++
+			services.Log(fmt.Sprintf("看门狗写入失败 (%d/%d): %v", consecutiveErrors, maxConsecutiveErrors, err), this.log_path)
+		} else {
+			consecutiveErrors = 0
+		}
 
 		this.heartbeat_info.Time = time.Now().Format("15:04:05")
 
@@ -180,8 +204,43 @@ func (this *XinjieGasGun2) heartbeat() {
 			}
 		}
 
+		// 连续通信失败次数超限，断开连接进入自动重连流程
+		if consecutiveErrors >= maxConsecutiveErrors {
+			services.Log(fmt.Sprintf("连续%d次通信失败，断开连接准备自动重连", consecutiveErrors), this.log_path)
+			this.plc.Close()
+			this.heartbeat_info.Running = false
+			runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
+			continue
+		}
+
 		runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
 		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+// reconnect 尝试自动重连设备，每3秒重试一次，直到重连成功或用户主动断开。
+// 返回true表示重连成功，false表示用户在重连过程中主动断开。
+func (this *XinjieGasGun2) reconnect() bool {
+	for {
+		if this.explicit_disconnect {
+			return false
+		}
+		services.Log(fmt.Sprintf("尝试自动重连设备: %s", this.connected_ip), this.log_path)
+		err := this.plc.OpenTCP(this.connected_ip, 1)
+		if err == nil {
+			services.Log("设备自动重连成功", this.log_path)
+			this.heartbeat_info.Running = true
+			runtime.EventsEmit(this.ctx, "xinjie_gasgun2_heartbeat", this.heartbeat_info)
+			return true
+		}
+		services.Log(fmt.Sprintf("自动重连失败: %v，3秒后重试", err), this.log_path)
+		// 分段等待3秒，期间可及时响应主动断开
+		for i := 0; i < 30; i++ {
+			if this.explicit_disconnect {
+				return false
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 }
 
@@ -410,7 +469,7 @@ func (g *XinjieGasGun2) AutoCylinderPressure(target float32) {
 			decompress := g.heartbeat_info.Output["Decompress"]
 			g.mu.RUnlock()
 
-			if g.heartbeat_info.CylinderPressure < target-0.1 {
+			if g.heartbeat_info.CylinderPressure < target {
 				// 需要增压：打开增压阀，关闭减压阀
 				if !pressurize {
 					g.OpenSwitch("Pressurize")
@@ -519,7 +578,19 @@ func (this *XinjieGasGun2) ResetSystem(reset bool) error {
 			return fmt.Errorf("开启靶室真空泵失败: %w", err)
 		}
 
+		time.Sleep(1 * time.Second)
+
+		// 开靶室真空泵
+		err = this.OpenSwitch("TargetVacuumPump")
+		if err != nil {
+			services.Log(fmt.Sprintf("打开靶室真空泵失败: %v", err), this.log_path)
+			this.CloseSwitch("TailVacuumPump")
+			return fmt.Errorf("打开靶室真空泵失败: %w", err)
+		}
+
 		services.Log("系统恢复完成", this.log_path)
+		this.waiting_for_auto_stop_reset = true
+		go this.go_waiting_for_auto_stop_reset()
 		return nil
 	} else {
 		services.Log("恢复系统: 关闭减压阀、泵管减压阀、系统减压阀", this.log_path)
@@ -547,10 +618,36 @@ func (this *XinjieGasGun2) ResetSystem(reset bool) error {
 			return fmt.Errorf("关闭目标真空泵阀失败: %w", err)
 		}
 
+		time.Sleep(1 * time.Second)
+
+		//闭靶室真空泵
+		err = this.CloseSwitch("TargetVacuumPump")
+		if err != nil {
+			services.Log(fmt.Sprintf("关闭靶室真空泵失败: %v", err), this.log_path)
+			return fmt.Errorf("关闭靶室真空泵失败: %w", err)
+		}
+		this.waiting_for_auto_stop_reset = false
 		services.Log("系统关闭完成", this.log_path)
 		return nil
 	}
 
+}
+
+func (this *XinjieGasGun2) go_waiting_for_auto_stop_reset() {
+	for {
+		if !this.waiting_for_auto_stop_reset {
+			break
+		}
+
+		time.Sleep(1000 * time.Millisecond)
+
+		if this.heartbeat_info.CylinderPressure <= 0.01 {
+			this.ResetSystem(false)
+			break
+		}
+	}
+	runtime.EventsEmit(this.ctx, "xinjie_gasgun2_auto_stop_reset", "自动停止重置完成")
+	services.Log("自动停止重置完成", this.log_path)
 }
 
 // 发射控制

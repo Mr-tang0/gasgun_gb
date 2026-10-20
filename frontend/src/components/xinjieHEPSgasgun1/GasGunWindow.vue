@@ -5,11 +5,11 @@
         <div class="side-card status-panel">
           <div class="status-grid">
             <div class="indicator-item">
-              <div class="led led-connect" :class="{ 'active': System.connected }"></div>
+              <div class="led led-connect" :class="{ 'active': Heartbeat.Running }"></div>
               <span class="indicator-label">PLC连接</span>
             </div>
             <div class="indicator-item">
-              <div class="led led-alarm" :class="{ 'active': System.alarm != '' && System.connected }"></div>
+              <div class="led led-alarm" :class="{ 'active': Heartbeat.Alarm != '' && Heartbeat.Running }"></div>
               <span class="indicator-label">异常警报</span>
             </div>
           </div>
@@ -18,7 +18,7 @@
         <div class="side-card config-panel">
           <input v-model="Target.ip" type="text" class="ip-input-modern" placeholder="PLC IP Address" />
           <div class="conn-btns-group">
-            <button class="btn btn-connect" @click="handleConnect">{{System.connected ? '断开连接' : '连接设备'}}</button>
+            <button class="btn btn-connect" @click="handleConnect">{{Heartbeat.Running ? '断开连接' : '连接设备'}}</button>
           </div>
         </div>
 
@@ -46,28 +46,31 @@
             <div class="metric-card">
                 <span class="label">供气压力</span>
                 <div class="value-row">
-                <span class="value">{{ System.tube.toFixed(2) }}</span>
+                <span class="value">{{ Heartbeat.InputPressure.toFixed(2) }}</span>
                 <span class="unit">MPa</span>
                 </div>
             </div>
             <div class="metric-card">
                 <span class="label">气室压力</span>
                 <div class="value-row">
-                <span class="value">{{ System.pressure.toFixed(2) }}</span>
+                <span class="value">{{ Heartbeat.CylinderPressure.toFixed(2) }}</span>
                 <span class="unit">MPa</span>
                 </div>
             </div>
+           
             <div class="metric-card">
-                <span class="label">靶室真空度</span>
+                <span class="label">尾部真空度</span>
                 <div class="value-row">
-                <span class="value">{{ System.vacuum.toFixed(0) }}</span>
+                <span class="value">{{ Heartbeat.TailVacuumDegree.toFixed(0) }}</span>
                 <span class="unit">Pa</span>
                 </div>
             </div>
-            <div class="metric-card">
-                <span class="label">运行时长</span>
+
+             <div class="metric-card">
+                <span class="label">靶室真空度</span>
                 <div class="value-row">
-                <span class="value">{{ System.time }}</span>
+                <span class="value">{{ Heartbeat.TargetVacuumDegree.toFixed(0) }}</span>
+                <span class="unit">Pa</span>
                 </div>
             </div>
 
@@ -76,7 +79,7 @@
         <section class="device-visualization">
           <div class="schematic-view">
             <div class="led-list">
-              <div v-for="led in ledItems" :key="led.key" class="led-item" :class="{ on: Y[led.key] && System.connected }">
+              <div v-for="led in ledItems" :key="led.key" class="led-item" :class="{ on: Output[led.key] && Heartbeat.Running }">
                 <span class="led-dot"></span>
                 <span class="led-text">{{ led.label }}</span>
               </div>
@@ -86,43 +89,92 @@
         </section>
 
         <footer class="action-bar">
-          <!-- 增压泵 -->
-          <button class="act-btn pump" :class="{ 'active-pressing': Y.PressureOpen }"
-            @click="handlePressureSwitch(!Y.PressureOpen)">
-            {{ Y.PressureOpen ? '停增压泵' : '增压泵' }}
-          </button>
-
-          <!-- 目标压力输入 + 自动增压 -->
-          <div class="btn-column">
-            <span class="target-label">目标气压（MPa）</span>
-            <input v-model="targetPressureView" @blur="formatTargetPressure" class="target-input" inputmode="decimal" placeholder="0.00" />
-            <button class="act-btn auto" :class="{ 'active-pressing': Target.autoRunning }" @click="handleAutoPressurize">
-              {{ Target.autoRunning ? '自动增压中' : '自动增压' }}
+          <!-- 1. 尾部真空 -->
+          <div class="action-zone">
+            <div class="zone-title">尾部真空</div>
+            <button class="ctrl-btn vacuum-tail-btn" :class="{ 'active': Output.TailVacuumPump }"
+              @click="handleTailVacuumSwitch(!Output.TailVacuumPump)">
+              {{ Output.TailVacuumPump ? '停抽尾部' : '抽尾部' }}
             </button>
           </div>
 
-          <!-- 进气 / 出气（按住生效） -->
-          <div class="btn-column">
-            <button class="act-btn" :class="{ 'active-pressing': Y.Inlet }"
-              @mousedown="handleInletSwitch(true)" @mouseup="handleInletSwitch(false)">
-              {{ Y.Inlet ? '进气中...' : '进气' }}
-            </button>
-            <button class="act-btn valve" :class="{ 'active-pressing': Y.Outlet }"
-              @mousedown="handleOutletSwitch(true)" @mouseup="handleOutletSwitch(false)">
-              {{ Y.Outlet ? '出气中...' : '出气' }}
+          <!-- 2. 靶室真空 -->
+          <div class="action-zone">
+            <div class="zone-title">靶室真空</div>
+            <button class="ctrl-btn vacuum-target-btn" :class="{ 'active': Output.TarVacuumPump }"
+              @click="handleVacuumSwitch(!Output.TarVacuumPump)">
+              {{ Output.TarVacuumPump ? '停抽靶室' : '抽靶室' }}
             </button>
           </div>
 
-          <button class="act-btn vacuum" :class="{ 'active-pressing': Y.TailVacuumPump }" @click="handleTailVacuumSwitch(!Y.TailVacuumPump)">
-            {{ Y.TailVacuumPump ? '停抽尾部' : '抽尾部' }}
-          </button>
-          <button class="act-btn vacuum" :class="{ 'active-pressing': Y.TarVacuumPump }" @click="handleVacuumSwitch(!Y.TarVacuumPump)">
-            {{ Y.TarVacuumPump ? '停抽靶室' : '抽靶室' }}
-          </button>
+          <!-- 3. 气室压力控制 -->
+          <div class="action-zone">
+            <div class="zone-title">气室压力控制</div>
+            <div class="mode-row">
+              <span class="mode-label">模式：{{ Target.AutoMode ? '自动' : '手动' }}</span>
+              <div class="toggle-switch"
+                :class="{ 'active': Target.AutoMode, 'disabled': Target.AutoRunning }"
+                @click="!Target.AutoRunning && (Target.AutoMode = !Target.AutoMode)"></div>
+            </div>
+            <div v-if="Target.AutoMode" class="auto-group">
+              <div class="auto-fields">
+                <label class="auto-label">目标 (MPa)</label>
+                <input v-model.number="Target.TargetPressure" type="number" step="0.1" class="pressure-input" />
+              </div>
+              <button :class="['ctrl-btn', Target.AutoRunning ? 'stop-btn' : 'start-btn']" @click="handleAutoPressure">
+                {{ Target.AutoRunning ? '停止' : '开始' }}
+              </button>
+            </div>
+            <div v-else class="manual-controls">
+              <button class="mini-btn plus-btn"
+                @mousedown="handleInletSwitch(true)" @mouseup="handleInletSwitch(false)" @mouseleave="handleInletSwitch(false)">进气</button>
+              <button class="mini-btn minus-btn"
+                @mousedown="handleOutletSwitch(true)" @mouseup="handleOutletSwitch(false)" @mouseleave="handleOutletSwitch(false)">排气</button>
+            </div>
+          </div>
 
-          <button class="act-btn fire" @click="handleFire">发射</button>
+          <!-- 4. 发射控制 -->
+          <div class="action-zone">
+            <div class="zone-title">发射控制</div>
+            <div class="mode-row">
+              <span class="mode-label">模式：{{ Target.ExternalTrigger ? '外触发' : '内触发' }}</span>
+              <div class="toggle-switch"
+                :class="{ 'active': Target.ExternalTrigger, 'disabled': Target.ExternalTriggerWaiting }"
+                style="--off-text: '内触发'; --on-text: '外触发'"
+                @click="!Target.ExternalTriggerWaiting && (Target.ExternalTrigger = !Target.ExternalTrigger)"></div>
+            </div>
+            <button class="ctrl-btn fire-btn" v-if="!Target.ExternalTrigger" @click="requestFire">立即发射</button>
+            <button class="ctrl-btn prepare-btn" :class="{ 'waiting': Target.ExternalTriggerWaiting }" v-if="Target.ExternalTrigger" @click="requestPrepareFire">
+              {{ Target.ExternalTriggerWaiting ? '等待触发...' : '发射准备' }}
+            </button>
+          </div>
+
+          <!-- 5. 系统释放 -->
+          <div class="action-zone">
+            <div class="zone-title">系统释放</div>
+            <button class="ctrl-btn release-btn" :class="{ 'active': Output.SystemDecompress }"
+              @click="handleSystemRelease(!Output.SystemDecompress)">
+              {{ Output.SystemDecompress ? '释放中...' : '系统释放' }}
+            </button>
+          </div>
         </footer>
       </div>
+  </div>
+
+  <!-- 发射确认模态框 -->
+  <div v-if="confirmModal.show" class="confirm-overlay" @click.self="confirmModal.show = false">
+    <div class="confirm-modal">
+      <div class="confirm-header" :class="{ 'danger': confirmModal.type === 'fire' }">
+        <h3>{{ confirmModal.title }}</h3>
+      </div>
+      <div class="confirm-body">
+        <p>{{ confirmModal.message }}</p>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn cancel-btn" @click="confirmModal.show = false">取消</button>
+        <button class="confirm-btn ok-btn" :class="{ 'danger': confirmModal.type === 'fire' }" @click="onConfirm">确认执行</button>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -135,106 +187,109 @@ import {
   DisconnectDevice,
   InletSwitch,
   ExhaustSwitch,
-  VacuumSwitch,
+  TargetVacuumSwitch,
   TailVacuumSwitch,
+  SystemReleaseSwitch,
+  AutoCylinderPressure,
+  StopAutoCylinderPressure,
   FireSwitch,
-  PressureSwitch,
-  AutoPressurize,
-  StopAutoPressurize,
+  PrepareFire,
+  ExternalFire,
   ExportAlarmHistory,
-} from '../../../wailsjs/go/xinjiegasgun1/XinjieGasGun1'
+} from '../../../wailsjs/go/hepsgasgun1/HEPSGasGun1'
 
 
 
-const System = reactive({
-  connected:    false,
-  alarm:        '',
+const Heartbeat = reactive({
+  Running:            false, // 是否连接
+  Alarm:              '',
 
-  tube:         0.00,
-  pressure:     0.00,
-  vacuum:       100000,
-
-  time:         '00:00:00',
+  InputPressure:      0.00,   // 输入压力
+  CylinderPressure:   0.00,   // 气室压力
+  TargetVacuumDegree: 100000, // 靶室真空度
+  TailVacuumDegree:   100000, // 尾部真空度
 })
 
-const Y = ref({
-    Inlet:          false,
-    Outlet:         false,
-    Fire:           false,
-    VacuumRealse:   false,
-    PressureOpen:   false,
-    PressureClose:  false,
-    TailVacuumPump: false,
-    TarVacuumPump:  false,
+const Output = ref({
+    Inlet:               false,
+    Outlet:              false,
+    Fire:                false,
+    TargetVacuumRelease: false,
+    TailVacuumPump:      false,
+    TarVacuumPump:       false,
+    SystemDecompress:    false,
 })
 
 // 示意图左上角 LED 输出指示
 const ledItems = [
-    { key: 'Inlet',          label: '进气阀' },
-    { key: 'Outlet',         label: '出气阀' },
-    { key: 'Fire',           label: '发射阀' },
-    { key: 'VacuumRealse',   label: '尾部真空阀' },
-    { key: 'PressureOpen',   label: '增压泵开结点' },
-    { key: 'PressureClose',  label: '增压泵关结点' },
-    { key: 'TailVacuumPump', label: '尾部真空泵' },
-    { key: 'TarVacuumPump',  label: '靶室真空泵' },
+    { key: 'Inlet',               label: '进气阀' },
+    { key: 'Outlet',              label: '出气阀' },
+    { key: 'Fire',                label: '发射阀' },
+    { key: 'TargetVacuumRelease', label: '靶室真空阀' },
+    { key: 'TailVacuumPump',      label: '尾部真空泵' },
+    { key: 'TarVacuumPump',       label: '靶室真空泵' },
+    { key: 'SystemDecompress',    label: '系统释放阀' },
 ]
 
 const Target = reactive({
-    ip:         '192.168.6.6',
-    pressure:    1.00,
-    autoRunning:  false,
+    ip: '192.168.6.6',
+
+    AutoMode:               false, // 压力控制：手动/自动模式
+    AutoRunning:            false, // 自动压力运行中
+    TargetPressure:         1.00,  // 自动压力目标值 (MPa)
+
+    ExternalTrigger:        false, // 发射：内触发/外触发模式
+    ExternalTriggerWaiting: false, // 外触发等待中
 })
 
-// 目标压力输入：失焦时格式化保留两位小数
-const targetPressureView = ref(Target.pressure.toFixed(2))
-function formatTargetPressure() {
-  const n = Number(targetPressureView.value)
-  if (!isFinite(n) || n < 0) {
-    targetPressureView.value = '0.00'
-    Target.pressure = 0
-    return
-  }
-  Target.pressure = Math.round(n * 100) / 100
-  targetPressureView.value = Target.pressure.toFixed(2)
-}
+let lastFireTrigger = false
 
 
 const logs = ref([])
 
 onMounted(() => {
-  EventsOn('heartbeat', (info) => {
+  EventsOn('heps_gasgun1_heartbeat', (info) => {
     if (!info) return
     try {
-        System.connected = info.running
-        System.alarm = info.alarm
-        System.pressure = info.pressure
-        System.vacuum = info.vacuum
-        // 后端 JSON tag 为小写 output；逐字段赋值避免整体替换丢失键
-        const out = info.output || {}
-        Y.value = {
-        Inlet:          !!out.Inlet,
-        Outlet:         !!out.Outlet,
-        Fire:           !!out.Fire,
-        VacuumRealse:   !!out.VacuumRealse,
-        PressureOpen:   !!out.PressureOpen,
-        PressureClose:  !!out.PressureClose,
-        TailVacuumPump: !!out.TailVacuumPump,
-        TarVacuumPump:  !!out.TarVacuumPump,
+        Heartbeat.Running = info.Running
+        Heartbeat.Alarm = info.Alarm
+
+        Heartbeat.InputPressure = info.InputPressure || 0.00
+        Heartbeat.CylinderPressure = info.CylinderPressure || 0.00
+        Heartbeat.TargetVacuumDegree = info.TargetVacuumDegree || 100000
+        Heartbeat.TailVacuumDegree = info.TailVacuumDegree || 100000
+
+        // 后端 JSON tag 为 Output；逐字段赋值避免整体替换丢失键
+        const out = info.Output || {}
+        Output.value = {
+            Inlet:               !!out.Inlet,
+            Outlet:              !!out.Outlet,
+            Fire:                !!out.Fire,
+            TargetVacuumRelease: !!out.TargetVacuumRelease,
+            TailVacuumPump:      !!out.TailVacuumPump,
+            TarVacuumPump:       !!out.TarVacuumPump,
+            SystemDecompress:    !!out.SystemDecompress,
         }
-        System.time = info.time
+
+        // 外部触发信号上升沿：等待外触发时收到信号则执行发射
+        const fireTrigger = !!(info.Input && info.Input['FireTrigger'])
+        if (fireTrigger && !lastFireTrigger && Target.ExternalTriggerWaiting) {
+            handleExternalTriggered()
+        }
+        lastFireTrigger = fireTrigger
     } catch (e) {
         addLog(`解析心跳数据失败: ${e}`)
     }
-    
+
   })
-  EventsOn('message', (msg) => {
+  EventsOn('heps_gasgun1_message', (msg) => {
     addLog(msg)
   })
 })
 
 onUnmounted(() => {
-  EventsOff('heartbeat')
+  EventsOff('heps_gasgun1_heartbeat')
+  EventsOff('heps_gasgun1_message')
 })
 
 
@@ -274,7 +329,7 @@ const handleExportLogs = async () => {
 
 // 连接 / 断开
 async function handleConnect() {
-  if (!System.connected) {
+  if (!Heartbeat.Running) {
     try {
       await ConnectDevice(Target.ip)
       addLog(`尝试连接 ${Target.ip}`)
@@ -313,7 +368,7 @@ async function handleOutletSwitch(open) {
 
 async function handleVacuumSwitch(open) {
   try {
-    await VacuumSwitch(open)
+    await TargetVacuumSwitch(open)
     addLog(`${open ? '开启' : '停止'}抽靶室真空`)
   } catch (e) {
     addLog(`抽靶室失败: ${e}`)
@@ -329,40 +384,6 @@ async function handleTailVacuumSwitch(open) {
   }
 }
 
-// 增压泵开关
-async function handlePressureSwitch(open) {
-  try {
-    await PressureSwitch(open)
-    addLog(`${open ? '开启' : '关闭'}增压泵`)
-  } catch (e) {
-    addLog(`增压泵操作失败: ${e}`)
-  }
-}
-
-// 自动增压（目标压力 Target.pressure）
-function handleAutoPressurize() {
-  if (Target.autoRunning) {
-    Target.autoRunning = false
-    StopAutoPressurize()
-      .then(() => addLog('停止自动增压'))
-      .catch((e) => addLog(`停止自动增压失败: ${e}`))
-    return
-  }
-  const t = Math.round(Number(targetPressureView.value) * 100) / 100
-  if (!isFinite(t) || t <= 0) {
-    addLog('请输入有效的目标压力')
-    return
-  }
-  Target.autoRunning = true
-  addLog(`开始自动增压，目标 ${t.toFixed(2)} MPa`)
-  AutoPressurize(t)
-    .then(() => { Target.autoRunning = false })
-    .catch((e) => {
-      Target.autoRunning = false
-      addLog(`自动增压失败: ${e}`)
-    })
-}
-
 // 发射
 async function handleFire() {
   try {
@@ -370,6 +391,98 @@ async function handleFire() {
     addLog('执行发射 (500ms)')
   } catch (e) {
     addLog(`发射失败: ${e}`)
+  }
+}
+
+// ===== 发射确认弹窗 =====
+const confirmModal = reactive({
+  show:    false,
+  type:    '', // 'fire' | 'prepare'
+  title:   '',
+  message: '',
+})
+
+// 立即发射前弹出确认框
+function requestFire() {
+  confirmModal.type = 'fire'
+  confirmModal.title = '确认发射'
+  confirmModal.message = '即将执行发射操作，请确认设备状态正常。是否继续？'
+  confirmModal.show = true
+}
+
+// 发射准备前弹出确认框；等待触发状态下点击为取消，不弹窗
+function requestPrepareFire() {
+  if (Target.ExternalTriggerWaiting) {
+    handlePrepareFire()
+    return
+  }
+  confirmModal.type = 'prepare'
+  confirmModal.title = '确认发射准备'
+  confirmModal.message = '即将执行发射准备，随后进入等待外触发状态。是否继续？'
+  confirmModal.show = true
+}
+
+async function onConfirm() {
+  const type = confirmModal.type
+  confirmModal.show = false
+  if (type === 'fire') {
+    await handleFire()
+  } else if (type === 'prepare') {
+    await handlePrepareFire()
+  }
+}
+
+// 自动压力控制：开始 / 停止
+async function handleAutoPressure() {
+  try {
+    if (Target.AutoRunning) {
+      await StopAutoCylinderPressure()
+      Target.AutoRunning = false
+      addLog('已停止自动压力控制')
+    } else {
+      await AutoCylinderPressure(Target.TargetPressure)
+      Target.AutoRunning = true
+      addLog(`开始自动压力控制，目标 ${Target.TargetPressure} MPa`)
+    }
+  } catch (e) {
+    addLog(`自动压力操作失败: ${e}`)
+  }
+}
+
+// 系统释放阀
+async function handleSystemRelease(open) {
+  try {
+    await SystemReleaseSwitch(open)
+    addLog(`${open ? '开启' : '关闭'}系统释放阀`)
+  } catch (e) {
+    addLog(`系统释放操作失败: ${e}`)
+  }
+}
+
+// 发射准备（外触发）：准备后进入等待外触发状态；再次点击取消
+async function handlePrepareFire() {
+  try {
+    if (!Target.ExternalTriggerWaiting) {
+      await PrepareFire()
+      Target.ExternalTriggerWaiting = true
+      addLog('已准备发射，等待外触发信号中...')
+    } else {
+      Target.ExternalTriggerWaiting = false
+      addLog('已取消准备发射')
+    }
+  } catch (e) {
+    addLog(`发射准备失败: ${e}`)
+  }
+}
+
+// 外部触发信号到来时执行发射并退出等待状态
+async function handleExternalTriggered() {
+  try {
+    Target.ExternalTriggerWaiting = false
+    await ExternalFire(500)
+    addLog('外部信号触发发射 (500ms)')
+  } catch (e) {
+    addLog(`外触发发射失败: ${e}`)
   }
 }
 </script>
@@ -792,162 +905,482 @@ async function handleFire() {
 
 .action-bar {
   flex-shrink: 0;
-  height: 130px;
+  height: 200px;
   display: flex;
-  gap: 15px;
+  gap: 12px;
   align-items: stretch;
   background: #dfe6f3;
-  padding: 10px;
-  border-radius: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  box-sizing: border-box;
 }
 
-.act-btn {
+/* 操作子区域 */
+.action-zone {
   flex: 1;
   min-width: 0;
-  padding: 8px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f0f0f0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+.zone-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1c24;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.zone-title::before {
+  content: '';
+  width: 4px;
+  height: 14px;
+  background: #4e69b5;
+  border-radius: 2px;
+}
+
+/* 手动/自动、内/外触发切换行 */
+.mode-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.mode-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.mode-row .toggle-switch {
+  margin-left: auto;
+}
+
+/* 自动模式：左（说明文字+输入框）右（开始按钮） */
+.auto-group {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex: 1;
+}
+
+.auto-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.auto-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.auto-fields .pressure-input {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+}
+
+.auto-group .start-btn {
+  flex: 0 0 auto;
+  min-width: 70px;
+  min-height: 0;
+  background: #4e69b5;
+  color: #fff;
+  border-color: #35497e;
+}
+
+.auto-group .start-btn:hover {
+  background: #3d549a;
+}
+
+.auto-group .stop-btn {
+  flex: 0 0 auto;
+  min-width: 70px;
+  min-height: 0;
+  background: #e74c3c;
+  color: #fff;
+  border-color: #c0392b;
+}
+
+.auto-group .stop-btn:hover {
+  background: #c0392b;
+}
+
+/* 通用 flex:1 按钮（发射/系统释放等） */
+.action-zone > .ctrl-btn {
+  flex: 1;
+  min-height: 48px;
+}
+
+.action-zone > .manual-controls {
+  flex: 1;
+  align-items: stretch;
+}
+
+.action-zone > .manual-controls .mini-btn {
+  min-height: 48px;
+}
+
+/* ===== 控制按钮 ===== */
+.ctrl-btn {
+  flex: 1;
+  min-width: 80px;
+  padding: 12px 16px;
+  border-radius: 8px;
   border: 2px solid #2b3245;
   background: #f8f9fa;
-  border-radius: 8px;
   font-weight: bold;
+  font-size: 17px;
   cursor: pointer;
   transition: 0.2s;
-  font-size: 1.3rem;
+  box-sizing: border-box;
+  text-align: center;
   box-shadow: 0 2px 5px rgba(15, 23, 42, 0.15);
 }
 
-.act-btn.active-pressing {
+.ctrl-btn:hover {
+  background: #eef2fb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 9px rgba(15, 23, 42, 0.22);
+}
+
+.ctrl-btn.active {
   background: #dbe6fa;
   border-color: #1f2a47;
   color: #24397a;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
 }
 
-.act-btn:hover {
-  background: #eef2fb;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 9px rgba(15, 23, 42, 0.22);
-}
-
-.act-btn.fire {
+.ctrl-btn.fire-btn {
   background: #e5484d;
   color: #fff;
   border-color: #144f68;
 }
 
-.act-btn.fire:hover {
+.ctrl-btn.fire-btn:hover {
   background: #c73e42;
 }
 
-/* ===== 分组配色：浅色底区分功能区 ===== */
-/* 进气/出气：主蓝（白底） */
-
-/* 增压泵：紫 */
-.act-btn.pump {
-  background: #f2f0fa;
-  border-color: #4e4680;
-  color: #403873;
+.ctrl-btn.prepare-btn {
+  background: #f3c42a;
+  color: #fff;
+  border-color: #144f68;
 }
 
-.act-btn.pump:hover {
-  background: #eae7f6;
+.ctrl-btn.prepare-btn:hover {
+  background: #c29e27;
 }
 
-.act-btn.pump.active-pressing {
-  background: #e0dbf3;
-  border-color: #322a63;
-  color: #322a63;
+.ctrl-btn.prepare-btn.waiting {
+  background: #17594e;
+  border-color: #0f3f38;
 }
 
-/* 自动/目标压力：青绿 */
-.act-btn.auto {
-  background: #ebf6f3;
-  border-color: #17594e;
-  color: #17594e;
+.ctrl-btn.prepare-btn.waiting:hover {
+  background: #0f3f38;
 }
 
-.act-btn.auto:hover {
-  background: #e0f1ec;
-}
-
-.act-btn.auto.active-pressing {
-  background: #d3ece5;
-  border-color: #0e453d;
-  color: #0e453d;
-}
-
-/* 抽尾部/抽靶室：海蓝 */
-.act-btn.vacuum {
+/* 抽尾部：海蓝 */
+.ctrl-btn.vacuum-tail-btn {
   background: #e9f4f9;
   border-color: #144f68;
   color: #144f68;
 }
 
-.act-btn.vacuum:hover {
+.ctrl-btn.vacuum-tail-btn:hover {
   background: #ddeef7;
 }
 
-.act-btn.vacuum.active-pressing {
-  background: #cfe7f2;
+.ctrl-btn.vacuum-tail-btn.active {
+  background: #144f68;
   border-color: #0b3a4e;
-  color: #0b3a4e;
+  color: #fff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
 }
 
-/* 双行按钮列 */
-.btn-column {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* 抽靶室：绿色系 */
+.ctrl-btn.vacuum-target-btn {
+  background: #ebf6f3;
+  border-color: #17594e;
+  color: #17594e;
 }
 
-.btn-column .act-btn {
-  padding: 4px;
-  font-size: 1.2rem;
+.ctrl-btn.vacuum-target-btn:hover {
+  background: #d3ece5;
 }
 
-/* 目标压力标签 */
-.target-label {
+.ctrl-btn.vacuum-target-btn.active {
+  background: #17594e;
+  border-color: #0f3f38;
+  color: #fff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* 系统释放 */
+.ctrl-btn.release-btn {
+  background: #39426b;
+  color: #fff;
+  border-color: #2b3245;
+}
+
+.ctrl-btn.release-btn.active {
+  background: #41b883;
+  border-color: #1d7a4a;
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(65, 184, 131, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(65, 184, 131, 0); }
+}
+
+/* 切换开关 */
+.toggle-switch {
+  width: 48px;
+  height: 26px;
+  background: #fff;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border: 2px solid #e8eaed;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
-  font-size: 0.85rem;
-  font-weight: bold;
-  color: #1d6e60;
-  text-align: center;
-  line-height: 1.2;
 }
 
-/* 目标压力输入框 */
-.target-input {
+.toggle-switch.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.toggle-switch::before {
+  content: var(--off-text, '手动');
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  color: #4e69b5;
+  transition: all 0.3s ease;
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: #4e69b5;
+  border-radius: 50%;
+  top: 1px;
+  left: 1px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(78, 105, 181, 0.4);
+}
+
+.toggle-switch.active {
+  background: #4e69b5;
+  border-color: #4e69b5;
+}
+
+.toggle-switch.active::before {
+  content: var(--on-text, '自动');
+  right: auto;
+  left: 4px;
+  color: white;
+}
+
+.toggle-switch.active::after {
+  left: 25px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* 手动进气/排气按钮 */
+.manual-controls {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.mini-btn {
   flex: 1;
-  min-width: 0;
-  padding: 4px 10px;
-  border: 2px solid #17594e;
+  padding: 10px;
+  border: 2px solid #2b3245;
   border-radius: 8px;
-  background: #ffffff;
-  text-align: center;
-  font-size: 1.3rem;
+  font-size: 16px;
   font-weight: bold;
-  color: #1a1c24;
-  outline: none;
+  cursor: pointer;
   transition: 0.2s;
   box-sizing: border-box;
 }
 
-.target-input:focus {
-  border-color: #0e453d;
-  box-shadow: 0 0 0 3px rgba(46, 158, 138, 0.18);
+.mini-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.target-input::-webkit-outer-spin-button,
-.target-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
+.mini-btn.plus-btn {
+  background: #ebf6f3;
+  border-color: #17594e;
+  color: #17594e;
+}
+
+.mini-btn.plus-btn:hover:not(:disabled) {
+  background: #d3ece5;
+}
+
+.mini-btn.minus-btn {
+  background: #fdf2f2;
+  border-color: #a53838;
+  color: #a53838;
+}
+
+.mini-btn.minus-btn:hover:not(:disabled) {
+  background: #fce8e8;
+}
+
+/* 压力输入框 */
+.pressure-input {
+  padding: 10px 12px;
+  border: 2px solid #2b3245;
+  border-radius: 8px;
+  font-size: 15px;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+  transition: 0.2s;
+}
+
+.pressure-input:focus {
+  border-color: #4e69b5;
+  box-shadow: 0 0 0 3px rgba(78, 105, 181, 0.18);
+}
+
+/* ===== 发射确认弹窗 ===== */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 380px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.confirm-header {
+  background: #4e69b5;
+  padding: 16px 20px;
+  color: #fff;
+}
+
+.confirm-header.danger {
+  background: #e5484d;
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.confirm-body {
+  padding: 20px;
+  font-size: 14px;
+  color: #3c4043;
+  line-height: 1.6;
+}
+
+.confirm-body p {
   margin: 0;
 }
 
-.target-input {
-  -moz-appearance: textfield;
-  appearance: textfield;
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e8eaed;
+}
+
+.confirm-btn {
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.confirm-btn.cancel-btn {
+  background: #e8eaed;
+  color: #5f6368;
+}
+
+.confirm-btn.cancel-btn:hover {
+  background: #dadce0;
+  color: #3c4043;
+}
+
+.confirm-btn.ok-btn {
+  background: #4e69b5;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(78, 105, 181, 0.3);
+}
+
+.confirm-btn.ok-btn:hover {
+  background: #3d549a;
+}
+
+.confirm-btn.ok-btn.danger {
+  background: #e5484d;
+  box-shadow: 0 2px 8px rgba(229, 72, 77, 0.3);
+}
+
+.confirm-btn.ok-btn.danger:hover {
+  background: #c73e42;
 }
 
 /* ===== 底部状态栏 ===== */

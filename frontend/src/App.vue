@@ -5,7 +5,7 @@
 
       <div class="logo"> 
         <img v-if="User=='NIMTE'" src="./assets/images/logo/nimte.png" width="100" height="25">
-        <img v-if="User=='PIMS'"  src="./assets/images/logo/pims.png" width="100" height="25">
+        <img v-if="User=='PIMS'||User==''"  src="./assets/images/logo/pims.png" width="100" height="25">
         <img v-if="User=='HEPS'" src="./assets/images/logo/heps.png" width="40" height="25">
       </div>
 
@@ -57,15 +57,28 @@
       </div>
     </div>
 
-    <div class="content">
-      <XINJIE_Gasgun1 v-if="currentDevice === 'xinjie-gasgun1'" />
-      <XINJIE_Gasgun2 v-if="currentDevice === 'xinjie-gasgun2'" />
-      <HEPS_Gasgun1 v-if="currentDevice === 'heps-gasgun1'" />
+    <div class="content" v-if="currentDevice === 'xinjie-gasgun1'">
+      <XINJIE_Gasgun1/>
+      <XINJIE_Gasgun1_SetModal v-model:show="ShowSetModal" @save="ShowSetModal = false" />
     </div>
 
-    <XINJIE_Gasgun2_SetModal v-if="currentDevice==='xinjie-gasgun2'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
-    <XINJIE_Gasgun1_SetModal v-if="currentDevice==='xinjie-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
-    <HEPS_Gasgun1_SetModal v-if="currentDevice==='heps-gasgun1'" v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    <div class="content" v-if="currentDevice === 'xinjie-gasgun2'">
+      <XINJIE_Gasgun2/>
+      <XINJIE_Gasgun2_SetModal v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    </div>
+    
+    <div class="content" v-if="currentDevice === 'heps-gasgun1'">
+      <HEPS_Gasgun1/>
+      <HEPS_Gasgun1_SetModal v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    </div>
+
+    <!-- <div v-if="currentDevice === 'normal-hopkinson'">
+      <div class="content">
+        <NormalHopkinson/>
+      </div>
+      <NormalHopkinson_SetModal v-model:show="ShowSetModal" @save="ShowSetModal = false" />
+    </div> -->
+
     
 
     <UpdateModal v-if="showUpdateModal" :version="releaseInfo.version" :url="releaseInfo.url" @close="showUpdateModal = false" />
@@ -124,7 +137,7 @@ const Devices = ref({
     PIMS:[
       { id: 'xinjie-gasgun1', name: '一级气炮' },
       { id: 'xinjie-gasgun2', name: '二级气炮' },
-      { id: 'gongbei-hopkinson', name: '常温Hopkinson杆' },
+      { id: 'normal-hopkinson', name: '常温Hopkinson杆' },
     ],
     NIMTE:[
       { id: 'xinjie-gasgun1', name: '一级气炮' },
@@ -135,6 +148,7 @@ const Devices = ref({
     HEPS:[
       { id: 'heps-gasgun1', name: '一级气炮' },
       { id: 'xinjie-gasgun2', name: '二级气炮' },
+      { id: 'normal-hopkinson', name: '常温Hopkinson杆' },
     ]
   }
 )

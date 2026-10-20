@@ -11,10 +11,10 @@
     !define INFO_COMPANYNAME "HEPS"
 !endif
 !ifndef INFO_PRODUCTNAME
-    !define INFO_PRODUCTNAME "力学实验室轻气炮系统"
+    !define INFO_PRODUCTNAME "SDB实验室控制系统"
 !endif
 !ifndef INFO_PRODUCTVERSION
-    !define INFO_PRODUCTVERSION "1.0.4"
+    !define INFO_PRODUCTVERSION "1.0.6"
 !endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "Copyright........."

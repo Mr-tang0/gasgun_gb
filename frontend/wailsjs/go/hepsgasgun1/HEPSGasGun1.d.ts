@@ -3,9 +3,7 @@
 import {hepsgasgun1} from '../models';
 import {context} from '../models';
 
-export function AddMessageToFrontend(arg1:string):Promise<void>;
-
-export function AutoPressurize(arg1:number):Promise<void>;
+export function AutoCylinderPressure(arg1:number):Promise<void>;
 
 export function ConnectDevice(arg1:string):Promise<void>;
 
@@ -15,20 +13,24 @@ export function ExhaustSwitch(arg1:boolean):Promise<void>;
 
 export function ExportAlarmHistory(arg1:string):Promise<void>;
 
+export function ExternalFire(arg1:number):Promise<void>;
+
 export function FireSwitch(arg1:number):Promise<void>;
 
 export function GetConfig():Promise<hepsgasgun1.Config>;
 
 export function InletSwitch(arg1:boolean):Promise<void>;
 
-export function PressureSwitch(arg1:boolean):Promise<void>;
+export function PrepareFire():Promise<void>;
 
 export function SaveConfig(arg1:hepsgasgun1.Config):Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
 
-export function StopAutoPressurize():Promise<void>;
+export function StopAutoCylinderPressure():Promise<void>;
+
+export function SystemReleaseSwitch(arg1:boolean):Promise<void>;
 
 export function TailVacuumSwitch(arg1:boolean):Promise<void>;
 
-export function VacuumSwitch(arg1:boolean):Promise<void>;
+export function TargetVacuumSwitch(arg1:boolean):Promise<void>;

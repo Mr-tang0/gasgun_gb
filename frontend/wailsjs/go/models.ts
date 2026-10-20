@@ -1,19 +1,19 @@
 export namespace hepsgasgun1 {
 	
 	export class Config {
-	    InletAddr: number;
-	    OutletAddr: number;
-	    FireAddr: number;
-	    VacuumRealseAddr: number;
-	    PressureOpenAddr: number;
-	    PressureCloseAddr: number;
-	    TailVacuumPumpAddr: number;
-	    TarVacuumPumpAddr: number;
-	    InputPressureAddr: number;
-	    VacuumFloatAddr: number;
-	    PressureFloatAddr: number;
-	    TailVaccumFloatAddr: number;
+	    Inlet: number;
+	    Outlet: number;
+	    Fire: number;
+	    TailVacuumPump: number;
+	    TargetVacuumRelease: number;
+	    TarVacuumPump: number;
+	    SystemDecompress: number;
+	    InputPressure: number;
+	    CylinderPressure: number;
+	    TargetVacuumDegree: number;
+	    TailVacuumDegree: number;
 	    DogAddr: number;
+	    FireTrigger: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -21,19 +21,19 @@ export namespace hepsgasgun1 {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.InletAddr = source["InletAddr"];
-	        this.OutletAddr = source["OutletAddr"];
-	        this.FireAddr = source["FireAddr"];
-	        this.VacuumRealseAddr = source["VacuumRealseAddr"];
-	        this.PressureOpenAddr = source["PressureOpenAddr"];
-	        this.PressureCloseAddr = source["PressureCloseAddr"];
-	        this.TailVacuumPumpAddr = source["TailVacuumPumpAddr"];
-	        this.TarVacuumPumpAddr = source["TarVacuumPumpAddr"];
-	        this.InputPressureAddr = source["InputPressureAddr"];
-	        this.VacuumFloatAddr = source["VacuumFloatAddr"];
-	        this.PressureFloatAddr = source["PressureFloatAddr"];
-	        this.TailVaccumFloatAddr = source["TailVaccumFloatAddr"];
+	        this.Inlet = source["Inlet"];
+	        this.Outlet = source["Outlet"];
+	        this.Fire = source["Fire"];
+	        this.TailVacuumPump = source["TailVacuumPump"];
+	        this.TargetVacuumRelease = source["TargetVacuumRelease"];
+	        this.TarVacuumPump = source["TarVacuumPump"];
+	        this.SystemDecompress = source["SystemDecompress"];
+	        this.InputPressure = source["InputPressure"];
+	        this.CylinderPressure = source["CylinderPressure"];
+	        this.TargetVacuumDegree = source["TargetVacuumDegree"];
+	        this.TailVacuumDegree = source["TailVacuumDegree"];
 	        this.DogAddr = source["DogAddr"];
+	        this.FireTrigger = source["FireTrigger"];
 	    }
 	}
 

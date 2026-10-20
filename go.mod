@@ -1,8 +1,6 @@
 module gasgun_gb
 
-go 1.26.4
-
-toolchain go1.27.1
+go 1.27.1
 
 require (
 	github.com/Mr-tang0/PIMSGoMod v1.0.1

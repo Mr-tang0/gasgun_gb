@@ -51,15 +51,16 @@ import { GetConfig, SaveConfig } from '../../../wailsjs/go/hepsgasgun1/HEPSGasGu
 const props = defineProps({ show: { type: Boolean, default: false } })
 const emit = defineEmits(['update:show', 'save'])
 const yFields = [
-  { key: 'InletAddr', label: '进气阀' }, { key: 'OutletAddr', label: '出气阀' }, { key: 'FireAddr', label: '发射阀' },
-  { key: 'VacuumRealseAddr', label: '真空释放阀' }, { key: 'PressureOpenAddr', label: '压力开启阀' }, { key: 'PressureCloseAddr', label: '压力关闭阀' },
-  { key: 'TailVacuumPumpAddr', label: '尾部真空泵' }, { key: 'TarVacuumPumpAddr', label: '靶室真空泵' },
+  { key: 'Inlet', label: '进气阀' }, { key: 'Outlet', label: '出气阀' }, { key: 'Fire', label: '发射阀' },
+  { key: 'TargetVacuumRelease', label: '靶室真空阀' },
+  { key: 'TailVacuumPump', label: '尾部真空泵' }, { key: 'TarVacuumPump', label: '靶室真空泵' },
+  { key: 'SystemDecompress', label: '系统减压阀' },
 ]
 const dFields = [
-  { key: 'InputPressureAddr', label: '输入压力' }, { key: 'VacuumFloatAddr', label: '真空浮点' },
-  { key: 'PressureFloatAddr', label: '压力浮点' }, { key: 'TailVaccumFloatAddr', label: '尾部真空浮点' },
+  { key: 'InputPressure', label: '输入压力' }, { key: 'CylinderPressure', label: '气瓶压力' },
+  { key: 'TargetVacuumDegree', label: '靶室真空度' }, { key: 'TailVacuumDegree', label: '尾部真空度' },
 ]
-const mFields = [{ key: 'DogAddr', label: '狗叫' }]
+const mFields = [{ key: 'DogAddr', label: '看门狗' }]
 const config = reactive({})
 const loading = ref(false)
 const error = ref('')

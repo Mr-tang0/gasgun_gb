@@ -6,43 +6,62 @@ import (
 	"path/filepath"
 )
 
+type HEPSGasgun1Heartbeat struct {
+	Running bool   `json:"Running"` //是否连接
+	Time    string `json:"Time"`
+	Alarm   string `json:"Alarm"`
+
+	InputPressure      float32 `json:"InputPressure"`      //输入压力
+	CylinderPressure   float32 `json:"CylinderPressure"`   //气瓶压力
+	TargetVacuumDegree float32 `json:"TargetVacuumDegree"` //靶室真空度
+	TailVacuumDegree   float32 `json:"TailVacuumDegree"`   //尾部真空度
+
+	Output map[string]bool `json:"Output"` //各阀门状态
+	Input  map[string]bool `json:"Input"`  //各阀门输入状态
+}
+
 // 地址配置
 type Config struct {
 	// Y地址
-	InletAddr          uint16 `json:"InletAddr"`
-	OutletAddr         uint16 `json:"OutletAddr"`
-	FireAddr           uint16 `json:"FireAddr"`
-	VacuumRealseAddr   uint16 `json:"VacuumRealseAddr"`
-	PressureOpenAddr   uint16 `json:"PressureOpenAddr"`
-	PressureCloseAddr  uint16 `json:"PressureCloseAddr"`
-	TailVacuumPumpAddr uint16 `json:"TailVacuumPumpAddr"`
-	TarVacuumPumpAddr  uint16 `json:"TarVacuumPumpAddr"`
+	Inlet  uint16 `json:"Inlet"`  // 进气开关地址
+	Outlet uint16 `json:"Outlet"` // 出气开关地址
+	Fire   uint16 `json:"Fire"`   // 发射开关地址
+
+	TailVacuumPump      uint16 `json:"TailVacuumPump"`      // 尾部真空泵地址
+	TargetVacuumRelease uint16 `json:"TargetVacuumRelease"` // 靶室真空阀地址
+	TarVacuumPump       uint16 `json:"TarVacuumPump"`       // 靶室真空泵地址
+	SystemDecompress    uint16 `json:"SystemDecompress"`    // 系统减压阀
 
 	// D地址
-	InputPressureAddr   uint16 `json:"InputPressureAddr"`
-	VacuumFloatAddr     uint16 `json:"VacuumFloatAddr"`
-	PressureFloatAddr   uint16 `json:"PressureFloatAddr"`
-	TailVaccumFloatAddr uint16 `json:"TailVaccumFloatAddr"`
+	InputPressure      uint16 `json:"InputPressure"`      // 输入压力地址
+	CylinderPressure   uint16 `json:"CylinderPressure"`   // 气瓶压力地址
+	TargetVacuumDegree uint16 `json:"TargetVacuumDegree"` // 靶室真空度地址
+	TailVacuumDegree   uint16 `json:"TailVacuumDegree"`   // 尾部真空度地址
 
 	// M地址
-	DogAddr uint16 `json:"DogAddr"`
+	DogAddr uint16 `json:"DogAddr"` // 看门狗地址
+
+	//X地址
+	FireTrigger uint16 `json:"FireTrigger"` // 发射触发地址
 }
 
 func NewConfig() Config {
 	return Config{
-		InletAddr:           0,
-		OutletAddr:          1,
-		FireAddr:            2,
-		VacuumRealseAddr:    10,
-		PressureOpenAddr:    4,
-		PressureCloseAddr:   5,
-		TailVacuumPumpAddr:  12,
-		TarVacuumPumpAddr:   11,
-		InputPressureAddr:   56,
-		VacuumFloatAddr:     58,
-		PressureFloatAddr:   54,
-		TailVaccumFloatAddr: 60,
-		DogAddr:             0,
+		Inlet:  0,
+		Outlet: 1,
+		Fire:   2,
+
+		TailVacuumPump:      12,
+		TargetVacuumRelease: 13,
+		TarVacuumPump:       11,
+		SystemDecompress:    3,
+
+		InputPressure:      56,
+		CylinderPressure:   54,
+		TargetVacuumDegree: 58,
+		TailVacuumDegree:   60,
+
+		DogAddr: 0,
 	}
 }
 
@@ -66,13 +85,4 @@ func (c *Config) SaveLocalConfig(path string) error {
 	}
 
 	return os.WriteFile(path, data, 0644)
-}
-
-type HEPSGasgunHeartbeat struct {
-	Time     string          `json:"time"`
-	Running  bool            `json:"running"`
-	Alarm    string          `json:"alarm"`
-	Vacuum   float32         `json:"vacuum"`
-	Pressure float32         `json:"pressure"`
-	OUTPUT   map[string]bool `json:"output"`
 }

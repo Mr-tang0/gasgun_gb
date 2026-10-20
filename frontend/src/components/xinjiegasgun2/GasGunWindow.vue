@@ -52,14 +52,15 @@
 
     <main class="main-content">
       <section class="metrics-grid">
+         <div class="metric-card">
+          <span class="label">尾部真空度 (Pa)</span>
+          <span class="main-value">{{ System.TailVacuumDegree.toFixed(1) }}</span>
+        </div>
         <div class="metric-card">
           <span class="label">输入气压 (MPa)</span>
           <span class="main-value">{{ System.InputPressure.toFixed(2) }}</span>
         </div>
-        <div class="metric-card">
-          <span class="label">尾部真空度 (Pa)</span>
-          <span class="main-value">{{ System.TailVacuumDegree.toFixed(1) }}</span>
-        </div>
+        
         <div class="metric-card">
           <span class="label">一级气室气压 (MPa)</span>
           <span class="main-value">{{ System.CylinderPressure.toFixed(2) }}</span>
@@ -86,6 +87,7 @@
           <span class="label">靶室真空度 (Pa)</span>
           <span class="main-value">{{ System.TargetVacuumDegree.toFixed(1) }}</span>
         </div>
+       
       </section>
 
       <section class="device-visualization">
@@ -100,8 +102,9 @@
             :key="v.key"
             class="valve-btn"
             :class="{ 'active': v.active }"true
-            @click="toggleValveButton(v)"
+            
           >{{ v.label }}</button>
+          <!-- @click="toggleValveButton(v)" -->
         </div>
       </section>
 
@@ -130,8 +133,8 @@
           <div class="mode-row">
             <span class="mode-label">模式：{{ Target.CylinderAutoMode ? '自动' : '手动' }}</span>
             <div class="toggle-switch" 
-            :class="{ 'active': Target.CylinderAutoMode }" 
-            @click="Target.CylinderAutoMode = !Target.CylinderAutoMode"></div>
+            :class="{ 'active': Target.CylinderAutoMode, 'disabled': System.PressureAutoRunning }" 
+            @click="!System.PressureAutoRunning && (Target.CylinderAutoMode = !Target.CylinderAutoMode)"></div>
           </div>
 
           <div v-if="Target.CylinderAutoMode" class="auto-group">
@@ -146,12 +149,10 @@
           <div v-else class="manual-controls">
             <button class="mini-btn plus-btn" 
               @mousedown="handlePressurize(true)" 
-              @mouseup="handlePressurize(false)"
-              @mouseleave="handlePressurize(false)">进气</button>
+              @mouseup="handlePressurize(false)">进气</button>
             <button class="mini-btn minus-btn"
               @mousedown="handleDecompress(true)" 
-              @mouseup="handleDecompress(false)"
-              @mouseleave="handleDecompress(false)">排气</button>
+              @mouseup="handleDecompress(false)">排气</button>
           </div>
         </div>
 
@@ -161,8 +162,8 @@
           <div class="mode-row">
             <span class="mode-label">模式：{{ Target.PumpTubeAutoMode ? '自动' : '手动' }}</span>
             <div class="toggle-switch" 
-            :class="{ 'active': Target.PumpTubeAutoMode }" 
-            @click="Target.PumpTubeAutoMode = !Target.PumpTubeAutoMode"></div>
+            :class="{ 'active': Target.PumpTubeAutoMode, 'disabled': System.PumpTubeAutoRunning }" 
+            @click="!System.PumpTubeAutoRunning && (Target.PumpTubeAutoMode = !Target.PumpTubeAutoMode)"></div>
           </div>
           <div v-if="Target.PumpTubeAutoMode" class="auto-group">
             <div class="auto-fields">
@@ -175,12 +176,10 @@
           <div v-else class="manual-controls">
             <button class="mini-btn plus-btn"
               @mousedown="handlePumpTubePressurize(true)"
-              @mouseup="handlePumpTubePressurize(false)"
-              @mouseleave="handlePumpTubePressurize(false)">进气</button>
+              @mouseup="handlePumpTubePressurize(false)">进气</button>
             <button class="mini-btn minus-btn"
               @mousedown="handlePumpTubeDecompress(true)" 
-              @mouseup="handlePumpTubeDecompress(false)"
-              @mouseleave="handlePumpTubeDecompress(false)">排气</button>
+              @mouseup="handlePumpTubeDecompress(false)">排气</button>
           </div>
         </div>
 
@@ -194,8 +193,8 @@
             style="--off-text: '内触发'; --on-text: '外触发'"
             @click="!Target.ExternalTriggerWaiting && (Target.ExternalTrigger = !Target.ExternalTrigger)"></div>
           </div>
-          <button class="ctrl-btn fire-btn" v-if="!Target.ExternalTrigger" @click="handleFire">立即发射</button>
-          <button class="ctrl-btn prepare-btn" v-if="Target.ExternalTrigger" @click="handlePrepareFire">{{ Target.ExternalTriggerWaiting ? '等待触发...' : '发射准备' }}</button>
+          <button class="ctrl-btn fire-btn" v-if="!Target.ExternalTrigger" @click="requestFire">立即发射</button>
+          <button class="ctrl-btn prepare-btn" :class="{ 'waiting': Target.ExternalTriggerWaiting }" v-if="Target.ExternalTrigger" @click="requestPrepareFire">{{ Target.ExternalTriggerWaiting ? '等待触发...' : '发射准备' }}</button>
         </div>
 
         <!-- 5. 系统恢复 -->
@@ -207,16 +206,21 @@
     </main>
   </div>
 
-  <!-- 发射倒计时模态框 -->
-  <!-- <div v-if="showCountdown" class="countdown-overlay">
-    <div class="countdown-container">
-      <div class="countdown-ring">
-        <div class="countdown-number">{{ countdown }}</div>
+  <!-- 发射确认模态框 -->
+  <div v-if="confirmModal.show" class="confirm-overlay" @click.self="confirmModal.show = false">
+    <div class="confirm-modal">
+      <div class="confirm-header" :class="{ 'danger': confirmModal.type === 'fire' }">
+        <h3>{{ confirmModal.title }}</h3>
       </div>
-      <div class="countdown-text">发射倒计时</div>
-      <div class="countdown-hint">按下任意键取消发射</div>
+      <div class="confirm-body">
+        <p>{{ confirmModal.message }}</p>
+      </div>
+      <div class="confirm-actions">
+        <button class="confirm-btn cancel-btn" @click="confirmModal.show = false">取消</button>
+        <button class="confirm-btn ok-btn" :class="{ 'danger': confirmModal.type === 'fire' }" @click="onConfirm">确认执行</button>
+      </div>
     </div>
-  </div> -->
+  </div>
 
 </template>
 
@@ -341,6 +345,11 @@ onMounted(() => {
 
   EventsOn('xinjie_gasgun2_message', (msg) => {
     addLog(msg)
+  })
+
+  EventsOn('xinjie_gasgun2_auto_stop_reset', (msg) => {
+    addLog(msg)
+    System.isResetting = false
   })
 })
 
@@ -536,6 +545,44 @@ async function handleFire() {
     addLog('发射已开启')
   } catch (e) {
     addLog(`操作失败: ${e}`)
+  }
+}
+
+// ===== 发射确认弹窗 =====
+const confirmModal = reactive({
+  show:    false,
+  type:    '', // 'fire' | 'prepare'
+  title:   '',
+  message: '',
+})
+
+// 立即发射前弹出确认框
+function requestFire() {
+  confirmModal.type = 'fire'
+  confirmModal.title = '确认发射'
+  confirmModal.message = '即将执行发射操作，请确认设备状态正常。是否继续？'
+  confirmModal.show = true
+}
+
+// 发射准备前弹出确认框；等待触发状态下点击为取消，不弹窗
+function requestPrepareFire() {
+  if (Target.ExternalTriggerWaiting) {
+    handlePrepareFire()
+    return
+  }
+  confirmModal.type = 'prepare'
+  confirmModal.title = '确认发射准备'
+  confirmModal.message = '即将执行发射准备，随后进入等待外触发状态。是否继续？'
+  confirmModal.show = true
+}
+
+async function onConfirm() {
+  const type = confirmModal.type
+  confirmModal.show = false
+  if (type === 'fire') {
+    await handleFire()
+  } else if (type === 'prepare') {
+    await handlePrepareFire()
   }
 }
 
@@ -1258,6 +1305,15 @@ async function toggleReset() {
   background: #c29e27;
 }
 
+.ctrl-btn.prepare-btn.waiting {
+  background: #17594e;
+  border-color: #0f3f38;
+}
+
+.ctrl-btn.prepare-btn.waiting:hover {
+  background: #0f3f38;
+}
+
 
 
 
@@ -1544,6 +1600,111 @@ async function toggleReset() {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* ===== 发射确认弹窗 ===== */
+.confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1500;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 380px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.confirm-header {
+  background: #4e69b5;
+  padding: 16px 20px;
+  color: #fff;
+}
+
+.confirm-header.danger {
+  background: #e5484d;
+}
+
+.confirm-header h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.confirm-body {
+  padding: 20px;
+  font-size: 14px;
+  color: #3c4043;
+  line-height: 1.6;
+}
+
+.confirm-body p {
+  margin: 0;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e8eaed;
+}
+
+.confirm-btn {
+  padding: 9px 22px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.confirm-btn.cancel-btn {
+  background: #e8eaed;
+  color: #5f6368;
+}
+
+.confirm-btn.cancel-btn:hover {
+  background: #dadce0;
+  color: #3c4043;
+}
+
+.confirm-btn.ok-btn {
+  background: #4e69b5;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(78, 105, 181, 0.3);
+}
+
+.confirm-btn.ok-btn:hover {
+  background: #3d549a;
+}
+
+.confirm-btn.ok-btn.danger {
+  background: #e5484d;
+  box-shadow: 0 2px 8px rgba(229, 72, 77, 0.3);
+}
+
+.confirm-btn.ok-btn.danger:hover {
+  background: #c73e42;
 }
 
 /* ===== 禁用状态 ===== */
